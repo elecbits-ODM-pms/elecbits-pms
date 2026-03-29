@@ -48,6 +48,13 @@ export const rejectProjectInDB = (id, reason, userId) =>
 export const insertTeamAssignments = (rows) =>
   supabase.from("team_assignments").insert(rows);
 
+export const replaceTeamAssignments = async (projectId, rows) => {
+  const { error: delErr } = await supabase.from("team_assignments").delete().eq("project_id", projectId);
+  if (delErr) return { error: delErr };
+  if (!rows.length) return { error: null };
+  return supabase.from("team_assignments").insert(rows);
+};
+
 export const insertChecklists = (rows) =>
   supabase.from("checklists").insert(rows);
 

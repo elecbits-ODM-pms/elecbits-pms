@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./lib/supabase.js";
 import { applyTheme, G, WALL_STYLES } from "./lib/constants.jsx";
-import { fetchProjectsFromDB, fetchUsersFromDB, getProjectUpdatedAt, updateProjectInDB } from "./lib/db.js";
+import { fetchProjectsFromDB, fetchUsersFromDB, getProjectUpdatedAt, updateProjectInDB, replaceTeamAssignments } from "./lib/db.js";
 import Header from "./components/Header.jsx";
 import Login from "./pages/Login.jsx";
 import SuperAdminView from "./pages/SuperAdminView.jsx";
@@ -100,6 +100,18 @@ export default function App(){
       checklist_data:updated.checklists||{},custom_checklist_data:updated.customChecklists||{},
     });
     if(error){console.error("updateProject error:",error.message);return;}
+    // Persist team assignments to team_assignments table
+    if(updated.teamAssignments){
+      const teamRows=(updated.teamAssignments||[]).filter(a=>a.userId||a.user_id).map(a=>({
+        project_id:updated.id,
+        user_id:a.userId||a.user_id,
+        role:a.role,
+        start_date:a.startDate||a.start_date||null,
+        end_date:a.endDate||a.end_date||null,
+      }));
+      const{error:te}=await replaceTeamAssignments(updated.id,teamRows);
+      if(te)console.error("Team assignment update error:",te.message);
+    }
     const stamped={...updated,updatedAt:new Date().toISOString()};
     setProjectsState(ps=>ps.map(p=>p.id===stamped.id?stamped:p));
     setOpenedProject(stamped);
