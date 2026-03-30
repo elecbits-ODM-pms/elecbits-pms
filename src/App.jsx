@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./lib/supabase.js";
 import { applyTheme, G, WALL_STYLES } from "./lib/constants.jsx";
 import { fetchProjectsFromDB, fetchUsersFromDB, getProjectUpdatedAt, updateProjectInDB, replaceTeamAssignments } from "./lib/db.js";
-import Header from "./components/Header.jsx";
+import Sidebar from "./components/Sidebar.jsx";
 import Login from "./pages/Login.jsx";
 import SuperAdminView from "./pages/SuperAdminView.jsx";
 import PMView from "./pages/PMView.jsx";
@@ -12,7 +12,7 @@ import ProjectPage from "./pages/project/ProjectPage.jsx";
 const shapeProfile=(p)=>({...p,resourceRole:p.resource_role,loginType:p.login_type,maxProjects:p.max_projects,projectTags:p.project_tags||[],skills:p.skills||[],holidays:p.holidays||[]});
 
 export default function App(){
-  const [isDark,setIsDark]=useState(true);
+  const [isDark,setIsDark]=useState(false);
   const [user,setUser]=useState(null);
   const [authLoading,setAuthLoading]=useState(true);
   const [projects,setProjectsState]=useState([]);
@@ -20,12 +20,13 @@ export default function App(){
   const [users,setUsersState]=useState([]);
   const [openedProject,setOpenedProject]=useState(null);
   const [prefillProject,setPrefillProject]=useState(null);
+  const [sidebarView,setSidebarView]=useState("projects");
 
   const toggleTheme=()=>{const next=!isDark;setIsDark(next);applyTheme(next);};
 
   // ── Session restore ──
   useEffect(()=>{
-    applyTheme(true);
+    applyTheme(false);
     let done=false;
     const finish=(u)=>{if(done)return;done=true;if(u)setUser(u);setAuthLoading(false);};
 
@@ -147,12 +148,28 @@ export default function App(){
   const currentProject=openedProject?projects.find(p=>p.id===openedProject.id)||openedProject:null;
   const wallStyle=user?WALL_STYLES[users.find(u=>u.id===user?.id)?.wallpaper||"none"]||{}:{};
 
+  const handleSidebarNav = (view) => {
+    if (view === "projects" || view === "all-projects") {
+      setOpenedProject(null);
+      setSidebarView("projects");
+    } else if (view === "resources") {
+      setOpenedProject(null);
+      setSidebarView("resources");
+    } else if (view === "alerts") {
+      setOpenedProject(null);
+      setSidebarView("alerts");
+    } else if (view === "settings") {
+      setOpenedProject(null);
+      setSidebarView("settings");
+    }
+  };
+
   if(authLoading)return(
-    <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0c0e13"}}>
+    <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f8fafc"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{width:32,height:32,background:"#4f8ef7",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}><span style={{fontSize:16,fontFamily:"IBM Plex Mono",fontWeight:700,color:"#fff"}}>E</span></div>
-        <div style={{fontSize:11,color:"#5a6478",fontFamily:"IBM Plex Mono",letterSpacing:"0.1em",marginBottom:8}}>LOADING...</div>
-        <div style={{width:120,height:2,background:"#1a2030",borderRadius:1,margin:"0 auto",overflow:"hidden"}}><div style={{height:"100%",background:"#4f8ef7",borderRadius:1,animation:"loadbar 1.5s ease-in-out infinite",width:"40%"}}/></div>
+        <img src="https://elecbits.in/wp-content/uploads/2025/06/EB-Logo.svg" alt="Elecbits" style={{width:40,height:40,marginBottom:12}} onError={(e)=>{e.target.style.display="none";}}/>
+        <div style={{fontSize:11,color:"#64748b",fontFamily:"IBM Plex Mono",letterSpacing:"0.1em",marginBottom:8}}>LOADING...</div>
+        <div style={{width:120,height:2,background:"#e2e8f0",borderRadius:1,margin:"0 auto",overflow:"hidden"}}><div style={{height:"100%",background:"#2563eb",borderRadius:1,animation:"loadbar 1.5s ease-in-out infinite",width:"40%"}}/></div>
       </div>
     </div>
   );
@@ -163,23 +180,30 @@ export default function App(){
       {!user?(
         <Login onLogin={handleLogin} isDark={isDark} toggleTheme={toggleTheme}/>
       ):(
-        <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"var(--bg)",...wallStyle}}>
-          <Header user={user} onLogout={async()=>{await supabase.auth.signOut();setUser(null);setOpenedProject(null);}} isDark={isDark} toggleTheme={toggleTheme} users={users}/>
-          {projectsLoading?(
-            <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--txt3)",fontSize:12,fontFamily:"IBM Plex Mono"}}>Loading projects...</div>
-          ):(
-            <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-              {currentProject?(
-                <ProjectPage project={currentProject} currentUser={user} onBack={()=>setOpenedProject(null)} onUpdateProject={updateProject} allProjects={projects} setProjects={setProjects} users={users} onOpenNewProject={(prefill)=>{setOpenedProject(null);setPrefillProject(prefill);}}/>
-              ):(
-                <>
-                  {user.role==="superadmin"&&<SuperAdminView projects={projects} setProjects={setProjects} currentUser={user} openProject={setOpenedProject} users={users} setUsers={setUsers} isDark={isDark} prefillProject={prefillProject} clearPrefill={()=>setPrefillProject(null)} fetchProjects={fetchProjects}/>}
-                  {user.role==="pm"&&<PMView projects={projects} currentUser={user} openProject={setOpenedProject} users={users} setUsers={setUsers}/>}
-                  {user.role==="developer"&&<DevView projects={projects} currentUser={user} openProject={setOpenedProject} users={users} setUsers={setUsers}/>}
-                </>
-              )}
-            </div>
-          )}
+        <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
+          <Sidebar
+            activeView={sidebarView}
+            onChangeView={handleSidebarNav}
+            onLogout={async()=>{await supabase.auth.signOut();setUser(null);setOpenedProject(null);}}
+            user={user}
+          />
+          <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column",...wallStyle}}>
+            {projectsLoading?(
+              <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--txt3)",fontSize:13,fontFamily:"IBM Plex Mono"}}>Loading projects...</div>
+            ):(
+              <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+                {currentProject?(
+                  <ProjectPage project={currentProject} currentUser={user} onBack={()=>setOpenedProject(null)} onUpdateProject={updateProject} allProjects={projects} setProjects={setProjects} users={users} onOpenNewProject={(prefill)=>{setOpenedProject(null);setPrefillProject(prefill);}}/>
+                ):(
+                  <>
+                    {user.role==="superadmin"&&<SuperAdminView projects={projects} setProjects={setProjects} currentUser={user} openProject={setOpenedProject} users={users} setUsers={setUsers} isDark={isDark} toggleTheme={toggleTheme} prefillProject={prefillProject} clearPrefill={()=>setPrefillProject(null)} fetchProjects={fetchProjects} sidebarView={sidebarView} setSidebarView={setSidebarView}/>}
+                    {user.role==="pm"&&<PMView projects={projects} currentUser={user} openProject={setOpenedProject} users={users} setUsers={setUsers} sidebarView={sidebarView} setSidebarView={setSidebarView} isDark={isDark} toggleTheme={toggleTheme}/>}
+                    {user.role==="developer"&&<DevView projects={projects} currentUser={user} openProject={setOpenedProject} users={users} setUsers={setUsers} sidebarView={sidebarView} setSidebarView={setSidebarView} isDark={isDark} toggleTheme={toggleTheme}/>}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>
