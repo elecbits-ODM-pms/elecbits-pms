@@ -3,6 +3,7 @@ import { daysLeft, fmtDate, getPM, ragColor, tagLabel, tagColor } from "../lib/c
 import { updateUserWallpaper } from "../lib/db.js";
 import { Btn, Pill, Tag, Stat, Av, Toast, ThemeToggle } from "../components/ui/index.jsx";
 import PersonalSettingsModal from "./PersonalSettingsModal.jsx";
+import { EB_LOGO_URL } from "../components/Sidebar.jsx";
 
 const DevView=({projects,currentUser,openProject,users,setUsers,sidebarView,setSidebarView,isDark,toggleTheme})=>{
   const myProjects=projects.filter(p=>p.teamAssignments?.some(a=>a.userId===currentUser.id));
@@ -19,13 +20,20 @@ const DevView=({projects,currentUser,openProject,users,setUsers,sidebarView,setS
   return(
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{flex:1,overflow:"auto"}}>
+        {/* Top bar with Elecbits logo */}
+        <div style={{padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid var(--bdr)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <img src={EB_LOGO_URL} alt="Elecbits" style={{height:28,objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>
+            <span style={{fontSize:14,fontWeight:700,color:"var(--txt)",letterSpacing:"-0.01em"}}>Elecbits PMS</span>
+          </div>
+          <ThemeToggle isDark={isDark} toggle={toggleTheme}/>
+        </div>
         {/* Welcome Header */}
-        <div style={{padding:"28px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{padding:"24px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div>
             <h1 style={{fontSize:26,fontWeight:800,color:"var(--txt)",margin:0,letterSpacing:"-0.02em"}}>Welcome back, {currentUser.name?.split(" ")[0] || "Developer"}</h1>
             <p style={{fontSize:14,color:"var(--txt2)",marginTop:4,fontWeight:400}}>Here's what's happening across your manufacturing projects</p>
           </div>
-          <ThemeToggle isDark={isDark} toggle={toggleTheme}/>
         </div>
 
         {/* Info Banner */}

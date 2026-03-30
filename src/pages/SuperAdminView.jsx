@@ -7,6 +7,7 @@ import ProjectForm from "../components/ProjectForm.jsx";
 import ResourcesView from "./resources/ResourcesView.jsx";
 import AlertsView from "./AlertsView.jsx";
 import PersonalSettingsModal from "./PersonalSettingsModal.jsx";
+import { EB_LOGO_URL } from "../components/Sidebar.jsx";
 
 const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUsers,isDark,toggleTheme,prefillProject,clearPrefill,fetchProjects,sidebarView,setSidebarView})=>{
   const view = sidebarView || "projects";
@@ -193,14 +194,23 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{flex:1,overflow:"auto",padding:"0"}}>
         {view==="projects"&&<>
+          {/* Top bar with Elecbits logo */}
+          <div style={{padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid var(--bdr)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <img src={EB_LOGO_URL} alt="Elecbits" style={{height:28,objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>
+              <span style={{fontSize:14,fontWeight:700,color:"var(--txt)",letterSpacing:"-0.01em"}}>Elecbits PMS</span>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <ThemeToggle isDark={isDark} toggle={toggleTheme}/>
+            </div>
+          </div>
           {/* Welcome Header */}
-          <div style={{padding:"28px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{padding:"24px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
               <h1 style={{fontSize:26,fontWeight:800,color:"var(--txt)",margin:0,letterSpacing:"-0.02em"}}>Welcome back, {currentUser.name?.split(" ")[0] || "Admin"}</h1>
               <p style={{fontSize:14,color:"var(--txt2)",marginTop:4,fontWeight:400}}>Here's what's happening across your manufacturing projects</p>
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <ThemeToggle isDark={isDark} toggle={toggleTheme}/>
               <button onClick={()=>setShowAdd(true)} style={{
                 padding:"10px 20px",background:"#2563eb",color:"#fff",border:"none",borderRadius:10,
                 fontSize:13,fontWeight:600,cursor:"pointer",transition:"all .15s",display:"flex",alignItems:"center",gap:6
