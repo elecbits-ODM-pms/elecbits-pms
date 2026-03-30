@@ -108,12 +108,12 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
           <div style={{width:32,height:32,borderRadius:7,background:`${def.color}18`,border:`1px solid ${def.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{locked?"🔒":def.icon}</div>
           <div style={{flex:1}}>
             <div style={{fontWeight:700,fontSize:12,color:"var(--txt)"}}>{def.label}</div>
-            <div style={{fontSize:9,color:"var(--txt3)",fontFamily:"IBM Plex Mono"}}>{locked?"Locked":"" }{items_.length?`${done_}/${items_.length} fully approved`:" Not started"}</div>
+            <div style={{fontSize:10,color:"var(--txt3)"}}>{locked?"Locked":"" }{items_.length?`${done_}/${items_.length} fully approved`:" Not started"}</div>
           </div>
           <span style={{color:"var(--txt3)",fontSize:13}}>›</span>
         </div>
         {items_.length?<Bar val={pct_} color={def.color} thin/>:<div style={{height:3,background:"var(--bdr)",borderRadius:99}}/>}
-        <div style={{fontSize:9,color:aColor,fontFamily:"IBM Plex Mono",fontWeight:700,marginTop:8}}>AUDIT: {inst.auditStatus||"Not Reviewed"}</div>
+        <div style={{fontSize:10,color:aColor,fontWeight:600,marginTop:8,textTransform:"uppercase",letterSpacing:"0.03em"}}>Audit: {inst.auditStatus||"Not Reviewed"}</div>
       </div>
     );
   };
@@ -150,7 +150,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
         </div>
       </div>
       <div style={{background:"var(--s1)",borderBottom:"1px solid var(--bdr)",padding:"0 22px",display:"flex"}}>
-        {[{id:"details",l:"Project Details"},{id:"execution",l:"Execution"},{id:"comms",l:"Client Communication"}].map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"9px 14px",background:"none",border:"none",cursor:"pointer",fontSize:10,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono",color:tab===t.id?"var(--acc)":"var(--txt2)",borderBottom:`2px solid ${tab===t.id?"var(--acc)":"transparent"}`,transition:"all .15s",marginBottom:-1}}>{t.l}</button>)}
+        {[{id:"details",l:"Project Details"},{id:"execution",l:"Execution"},{id:"comms",l:"Client Communication"}].map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"9px 14px",background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:500,color:tab===t.id?"#2563eb":"#64748b",borderBottom:`2px solid ${tab===t.id?"#2563eb":"transparent"}`,transition:"all .15s",marginBottom:-1}}>{t.l}</button>)}
       </div>
 
       <div style={{flex:1,overflow:"auto",padding:22}}>
@@ -165,7 +165,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 return(
                   <div style={{padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bdr2)",borderRadius:10,marginBottom:18}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                      <div style={{fontSize:10,fontWeight:700,color:"var(--acc)",fontFamily:"IBM Plex Mono",textTransform:"uppercase",letterSpacing:"0.08em"}}>📋 Project Internal Sheet</div>
+                      <div style={{fontSize:12,fontWeight:500,color:"var(--acc)",textTransform:"uppercase",letterSpacing:"0.04em"}}>📋 Project Internal Sheet</div>
                       {isAdmin&&<Btn v="ghost" style={{fontSize:10,padding:"3px 9px"}} onClick={()=>{if(!editSheet)setSheetDraft({projectId:project.projectId,clientName:project.clientName||"",clientId:project.clientId||"",projectTag:project.projectTag,productIds:project.productIds||[project.productId||""]});setEditSheet(!editSheet);}}>{editSheet?"Cancel":"✏ Edit"}</Btn>}
                     </div>
                     {editSheet?(
@@ -184,9 +184,9 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                       </div>
                     ):(
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:12}}>
-                        <div><span style={{color:"var(--txt3)"}}>Project ID: </span><span style={{fontFamily:"IBM Plex Mono",fontWeight:700,color:"var(--txt)"}}>{project.projectId}</span></div>
+                        <div><span style={{color:"var(--txt3)"}}>Project ID: </span><span style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,color:"var(--txt)"}}>{project.projectId}</span></div>
                         <div><span style={{color:"var(--txt3)"}}>Client: </span><span style={{fontWeight:700,color:"var(--txt)"}}>{project.clientName||"—"}</span></div>
-                        <div><span style={{color:"var(--txt3)"}}>Client ID: </span><span style={{fontFamily:"IBM Plex Mono",color:"var(--txt)"}}>{project.clientId||"—"}</span></div>
+                        <div><span style={{color:"var(--txt3)"}}>Client ID: </span><span style={{fontFamily:"'IBM Plex Mono',monospace",color:"var(--txt)"}}>{project.clientId||"—"}</span></div>
                         <div><span style={{color:"var(--txt3)"}}>Type: </span>{project.projectTag&&<Tag label={tagLabel(project.projectTag)} color={tagColor(project.projectTag)}/>}</div>
                         <div style={{gridColumn:"span 2"}}>
                           <span style={{color:"var(--txt3)"}}>Electronics PCB IDs: </span>
@@ -209,7 +209,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
               <SH title="Timeline"/>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
                 {[["Start",fmtDate(project.startDate),"var(--blue)"],["End",fmtDate(project.endDate),dl<0?"var(--red)":dl<14?"var(--amber)":"var(--green)"],["Days Left",dl<0?"OVERDUE":dl+"d",dl<0?"var(--red)":dl<14?"var(--amber)":"var(--txt)"]].map(([label,val,color])=>(
-                  <div key={label} style={{padding:"12px 14px",background:"var(--s2)",borderRadius:8}}><div style={{fontSize:10,color:"var(--txt2)",fontFamily:"IBM Plex Mono",marginBottom:5,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div><div style={{fontSize:15,fontWeight:800,color}}>{val}</div></div>
+                  <div key={label} style={{padding:"12px 14px",background:"var(--s2)",borderRadius:8}}><div style={{fontSize:11,color:"var(--txt2)",marginBottom:5,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.04em"}}>{label}</div><div style={{fontSize:16,fontWeight:700,color}}>{val}</div></div>
                 ))}
               </div>
             </div>
@@ -221,7 +221,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 const eligibleTMs=(users||[]).filter(u=>u.id!==currentUser.id);
                 return(
                   <div style={{padding:"10px 14px",background:"var(--coral)08",border:"1px solid var(--coral)25",borderRadius:9,marginBottom:12}}>
-                    <div style={{fontSize:10,fontWeight:700,color:"var(--coral)",fontFamily:"IBM Plex Mono",textTransform:"uppercase",marginBottom:8,letterSpacing:"0.07em"}}>⭐ Technical Manager (TM)</div>
+                    <div style={{fontSize:12,fontWeight:500,color:"var(--coral)",textTransform:"uppercase",marginBottom:8,letterSpacing:"0.04em"}}>⭐ Technical Manager (TM)</div>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                       {currentTMUser?<><Av uid={currentTMUser.id} size={26} users={users}/><span style={{fontSize:12,fontWeight:700,color:"var(--txt)"}}>{currentTMUser.name}</span><Pill label="Current TM" color="var(--coral)" small/></>:<span style={{fontSize:11,color:"var(--txt3)"}}>No TM assigned yet</span>}
                     </div>
@@ -247,7 +247,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 return(
                   <>
                     <SH title="Team & Dates" action={isPM&&<Btn v="ghost" style={{fontSize:10,padding:"3px 9px"}} onClick={()=>{setTeamDraft(project.teamAssignments||[]);setEditTeam(!editTeam);}}>{editTeam?"Cancel":"✏ Edit Team"}</Btn>}/>
-                    <div style={{fontSize:10,color:"var(--txt3)",fontFamily:"IBM Plex Mono",marginBottom:8}}>Role slots are fixed — you can only assign someone with the matching designation.</div>
+                    <div style={{fontSize:11,color:"var(--txt3)",marginBottom:8}}>Role slots are fixed — you can only assign someone with the matching designation.</div>
                     {TEAM_SLOTS.map(slot=>{
                       const a=getSlotAssignment(slot.role);
                       const m=a?.userId?getUser(a.userId,users):null;
@@ -258,7 +258,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                           <div style={{flex:1}}>
                             {editTeam?(
                               <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                                <div style={{fontSize:10,color:"var(--txt3)",fontFamily:"IBM Plex Mono",fontWeight:700}}>{slot.role}</div>
+                                <div style={{fontSize:11,color:"var(--txt3)",fontWeight:500}}>{slot.role}</div>
                                 <Sel value={a?.userId||""} onChange={e=>updateSlot(slot.role,"userId",e.target.value?Number(e.target.value):"")} style={{padding:"4px 6px",fontSize:11}}>
                                   <option value="">— Select {slot.role} —</option>
                                   {eligible.map(u=><option key={u.id} value={u.id}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label})</option>)}
@@ -275,7 +275,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                               </>
                             )}
                           </div>
-                          {!editTeam&&a?.userId&&<div style={{textAlign:"right"}}><div style={{fontSize:10,fontFamily:"IBM Plex Mono",color:"var(--acc)"}}>{fmtShort(a.startDate)} → {fmtShort(a.endDate||project.endDate)}</div></div>}
+                          {!editTeam&&a?.userId&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"var(--acc)"}}>{fmtShort(a.startDate)} → {fmtShort(a.endDate||project.endDate)}</div></div>}
                         </div>
                       );
                     })}
@@ -333,7 +333,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
             <SH title="Production Checklists" color="var(--red)" action={isPM&&<Btn v="ghost" style={{fontSize:10,padding:"4px 10px"}} onClick={()=>setShowProd(true)}>+ New Run</Btn>}/>
             {!(project.checklists?.production||[]).length&&!Object.values(project.customChecklists||{}).some(cl=>cl.baseKey==="production")&&<div style={{textAlign:"center",padding:"14px 0",color:"var(--txt3)",fontSize:12}}>No production runs.</div>}
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:10}}>
-              {(project.checklists?.production||[]).map((prod,idx)=>{const done_=(prod.items||[]).filter(x=>x.tmApproval==="Approved"&&x.pmApproval==="Approved"&&x.clientApproval==="Approved").length;const pct_=prod.items?.length?Math.round((done_/prod.items.length)*100):0;return(<div key={idx} onClick={()=>setOpenCL({def:"production",idx})} className="card" style={{padding:14,cursor:"pointer",border:"1px solid var(--red)25"}} onMouseEnter={e=>e.currentTarget.style.background="var(--s2)"} onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><div style={{width:32,height:32,borderRadius:7,background:"var(--red)18",border:"1px solid var(--red)30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🏭</div><div style={{flex:1}}><div style={{fontWeight:700,fontSize:12,color:"var(--txt)"}}>{prod.label||`Run ${idx+1}`}</div><div style={{fontSize:9,color:"var(--txt3)",fontFamily:"IBM Plex Mono"}}>{prod.units} units · {done_}/{prod.items?.length||0}</div></div><span style={{color:"var(--txt3)",fontSize:13}}>›</span></div><Bar val={pct_} color="var(--red)" thin/></div>);})}
+              {(project.checklists?.production||[]).map((prod,idx)=>{const done_=(prod.items||[]).filter(x=>x.tmApproval==="Approved"&&x.pmApproval==="Approved"&&x.clientApproval==="Approved").length;const pct_=prod.items?.length?Math.round((done_/prod.items.length)*100):0;return(<div key={idx} onClick={()=>setOpenCL({def:"production",idx})} className="card" style={{padding:14,cursor:"pointer",border:"1px solid var(--red)25"}} onMouseEnter={e=>e.currentTarget.style.background="var(--s2)"} onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><div style={{width:32,height:32,borderRadius:7,background:"var(--red)18",border:"1px solid var(--red)30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🏭</div><div style={{flex:1}}><div style={{fontWeight:700,fontSize:12,color:"var(--txt)"}}>{prod.label||`Run ${idx+1}`}</div><div style={{fontSize:10,color:"var(--txt3)"}}>{prod.units} units · {done_}/{prod.items?.length||0}</div></div><span style={{color:"var(--txt3)",fontSize:13}}>›</span></div><Bar val={pct_} color="var(--red)" thin/></div>);})}
             </div>
             {showProd&&<ProdModal onClose={()=>setShowProd(false)} onAdd={addProdCL}/>}
           </div>

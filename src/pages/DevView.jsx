@@ -60,7 +60,7 @@ const DevView=({projects,currentUser,openProject,users,setUsers,sidebarView,setS
         {/* Project Table */}
         <div style={{padding:"0 32px 24px"}}>
           <div style={{background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,overflow:"hidden",boxShadow:"var(--shadow)"}}>
-            <div style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px",gap:8,padding:"12px 16px",fontSize:11,color:"var(--txt2)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase",fontFamily:"IBM Plex Mono",borderBottom:"1px solid var(--bdr)",background:"var(--s2)"}}><span>Project</span><span>Tag</span><span>My Start</span><span>My End</span><span>PM</span><span>Status</span></div>
+            <div style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px",gap:8,padding:"12px 16px",fontSize:11,color:"var(--txt2)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase",borderBottom:"1px solid var(--bdr)",background:"var(--s2)"}}><span>Project</span><span>Tag</span><span>My Start</span><span>My End</span><span>PM</span><span>Status</span></div>
             {myProjects.map(p=>{const a=p.teamAssignments?.find(x=>x.userId===currentUser.id);const dl=daysLeft(a?.endDate||p.endDate);const pm=getPM(p,users);return(
               <div key={p.id} onClick={()=>openProject(p)} style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px",gap:8,padding:"14px 16px",borderBottom:"1px solid var(--bdr)",cursor:"pointer",alignItems:"center",transition:"all .12s",background:"var(--card)"}}
                 onMouseEnter={e=>e.currentTarget.style.background="var(--s2)"}
@@ -68,7 +68,7 @@ const DevView=({projects,currentUser,openProject,users,setUsers,sidebarView,setS
               >
                 <div>
                   <div style={{fontWeight:600,fontSize:13,color:"var(--txt)",marginBottom:2}}>{p.name}</div>
-                  <div style={{fontSize:11,color:"var(--txt3)",fontFamily:"IBM Plex Mono"}}>{a?.role}</div>
+                  <div style={{fontSize:11,color:"var(--txt3)"}}>{a?.role}</div>
                 </div>
                 {p.projectTag?<span className="status-pill" style={{
                   background:p.projectTag==="engineering"?"#eff6ff":p.projectTag==="elecbits_product"?"#f0fdf4":"#f5f3ff",

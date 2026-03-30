@@ -104,15 +104,15 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
       <tr><td colSpan={12} style={{padding:0,background:"var(--bg)"}}>
         <div style={{padding:"14px 16px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,borderBottom:"2px solid var(--bdr2)"}}>
           <div>
-            <div style={{fontSize:10,fontWeight:700,color:"var(--blue)",fontFamily:"IBM Plex Mono",marginBottom:6,textTransform:"uppercase"}}>💬 Comments</div>
-            {(item.comments||[]).map(c=><div key={c.id} style={{padding:"8px 10px",background:"var(--s2)",borderRadius:6,marginBottom:5,borderLeft:"2px solid var(--blue)"}}><div style={{fontSize:11,fontWeight:600,color:"var(--txt)"}}>{c.title}</div>{c.desc&&<div style={{fontSize:11,color:"var(--txt2)",marginTop:2}}>{c.desc}</div>}<div style={{fontSize:9,color:"var(--txt3)",fontFamily:"IBM Plex Mono",marginTop:3}}>{c.author||c.authorName} · {c.time}</div></div>)}
+            <div style={{fontSize:12,fontWeight:500,color:"var(--blue)",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.04em"}}>💬 Comments</div>
+            {(item.comments||[]).map(c=><div key={c.id} style={{padding:"8px 10px",background:"var(--s2)",borderRadius:6,marginBottom:5,borderLeft:"2px solid var(--blue)"}}><div style={{fontSize:11,fontWeight:600,color:"var(--txt)"}}>{c.title}</div>{c.desc&&<div style={{fontSize:11,color:"var(--txt2)",marginTop:2}}>{c.desc}</div>}<div style={{fontSize:9,color:"var(--txt3)",fontFamily:"'IBM Plex Mono',monospace",marginTop:3}}>{c.author||c.authorName} · {c.time}</div></div>)}
             <div style={{display:"flex",flexDirection:"column",gap:5,marginTop:6}}>
               <Inp value={cTitle} onChange={e=>setCTitle(e.target.value)} placeholder="Comment title…" style={{fontSize:11,padding:"5px 8px"}}/>
               <div style={{display:"flex",gap:5}}><Inp value={cDesc} onChange={e=>setCDesc(e.target.value)} placeholder="Description…" style={{flex:1,fontSize:11,padding:"5px 8px"}}/><Btn v="ghost" style={{fontSize:10,padding:"4px 8px"}} onClick={()=>{addComment(item.id,cTitle,cDesc);setCTitle("");setCDesc("");}}>+</Btn></div>
             </div>
           </div>
           <div>
-            <div style={{fontSize:10,fontWeight:700,color:"var(--red)",fontFamily:"IBM Plex Mono",marginBottom:6,textTransform:"uppercase"}}>⚠ Roadblocks</div>
+            <div style={{fontSize:12,fontWeight:500,color:"var(--red)",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.04em"}}>⚠ Roadblocks</div>
             {(item.roadblocks||[]).map(r=><div key={r.id} style={{padding:"8px 10px",background:r.resolved?"var(--s2)":"var(--red)08",borderRadius:6,marginBottom:5,borderLeft:`2px solid ${r.resolved?"var(--txt3)":"var(--red)"}`,display:"flex",gap:8}}><input type="checkbox" checked={r.resolved} onChange={()=>toggleRB(item.id,r.id)} style={{marginTop:3,flexShrink:0}}/><div><div style={{fontSize:11,fontWeight:600,textDecoration:r.resolved?"line-through":"none",color:r.resolved?"var(--txt3)":"var(--txt)"}}>{r.title}</div>{r.desc&&<div style={{fontSize:10,color:"var(--txt2)",marginTop:1}}>{r.desc}</div>}</div></div>)}
             <div style={{display:"flex",flexDirection:"column",gap:5,marginTop:6}}>
               <Inp value={rbTitle} onChange={e=>setRbTitle(e.target.value)} placeholder="Roadblock title…" style={{fontSize:11,padding:"5px 8px",borderColor:"var(--red)40"}}/>
@@ -120,8 +120,8 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
             </div>
           </div>
           <div>
-            <div style={{fontSize:10,fontWeight:700,color:"var(--green)",fontFamily:"IBM Plex Mono",marginBottom:6,textTransform:"uppercase"}}>🔗 Links · {(item.links||[]).length}</div>
-            {(item.links||[]).map(l=><div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 8px",background:"var(--s2)",borderRadius:5,marginBottom:4,borderLeft:"2px solid var(--green)"}}><div><a href={l.url} target="_blank" rel="noreferrer" style={{color:"var(--acc)",fontSize:11,textDecoration:"none"}}>{l.label}</a><div style={{fontSize:9,color:"var(--txt3)",fontFamily:"IBM Plex Mono"}}>{l.ts}</div></div><button onClick={()=>removeLink(item.id,l.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--txt3)",fontSize:13}}>×</button></div>)}
+            <div style={{fontSize:12,fontWeight:500,color:"var(--green)",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.04em"}}>🔗 Links · {(item.links||[]).length}</div>
+            {(item.links||[]).map(l=><div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 8px",background:"var(--s2)",borderRadius:5,marginBottom:4,borderLeft:"2px solid var(--green)"}}><div><a href={l.url} target="_blank" rel="noreferrer" style={{color:"var(--acc)",fontSize:11,textDecoration:"none"}}>{l.label}</a><div style={{fontSize:9,color:"var(--txt3)",fontFamily:"'IBM Plex Mono',monospace"}}>{l.ts}</div></div><button onClick={()=>removeLink(item.id,l.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--txt3)",fontSize:13}}>×</button></div>)}
             <div style={{display:"flex",flexDirection:"column",gap:5,marginTop:6}}>
               <Inp value={lUrl} onChange={e=>setLUrl(e.target.value)} placeholder="https://…" style={{fontSize:11,padding:"5px 8px"}}/>
               <div style={{display:"flex",gap:5}}><Inp value={lLabel} onChange={e=>setLLabel(e.target.value)} placeholder="Label" style={{flex:1,fontSize:11,padding:"5px 8px"}}/><Btn v="ghost" style={{fontSize:10,padding:"4px 8px"}} onClick={()=>{addLink(item.id,lUrl,lLabel);setLUrl("");setLLabel("");}}>+ Add</Btn></div>
@@ -162,10 +162,10 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
         ):(<span style={{fontWeight:700,fontSize:13,color:"var(--txt)"}}>{def.icon} {def.label}</span>)}
         {instance?.units&&<Tag label={`${instance.units} units`} color="var(--purple)"/>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          <span style={{fontSize:10,color:"var(--txt2)",fontFamily:"IBM Plex Mono"}}>AUDIT:</span>
+          <span style={{fontSize:12,color:"var(--txt2)",fontWeight:500}}>AUDIT:</span>
           {canApprv?<Sel value={auditStatus} onChange={e=>setAuditStatus(e.target.value)} style={{width:130,padding:"4px 8px",fontSize:10,color:auditC[auditStatus]}}>{["Not Reviewed","In Review","Approved","Rejected"].map(o=><option key={o}>{o}</option>)}</Sel>:<Tag label={auditStatus} color={auditC[auditStatus]}/>}
           <div style={{width:90}}><Bar val={pct} color={def.color} thin/></div>
-          <span style={{fontSize:11,fontWeight:700,color:def.color,fontFamily:"IBM Plex Mono"}}>{doneCount}/{items.length}</span>
+          <span style={{fontSize:12,fontWeight:600,color:def.color}}>{doneCount}/{items.length}</span>
           <Btn v="success" style={{padding:"5px 14px",fontSize:11}} onClick={save}>💾 Save</Btn>
         </div>
       </div>
@@ -205,7 +205,7 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
 
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
               <div style={{flex:1,height:7,background:"var(--bdr)",borderRadius:99,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:def.color,borderRadius:99}}/></div>
-              <span style={{fontSize:12,fontWeight:800,color:def.color,fontFamily:"IBM Plex Mono"}}>{pct}%</span>
+              <span style={{fontSize:13,fontWeight:700,color:def.color}}>{pct}%</span>
             </div>
 
             {canEdit&&items.some(i=>i._ticked)&&(()=>{
@@ -218,14 +218,14 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
                     <div>
-                      <span style={{fontSize:10,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Set Assignee</span>
+                      <span style={{fontSize:12,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Set Assignee</span>
                       <Sel defaultValue="" onChange={e=>{if(!e.target.value)return;const val=e.target.value?Number(e.target.value):"";setItems(prev=>prev.map(x=>x._ticked?{...x,assigneeId:val,lastUpdated:todayStr()}:x));showBulkToast("Assignee updated ✓");e.target.value="";}} style={{fontSize:11,padding:"5px 8px"}}>
                         <option value="">— Pick —</option><option value="">Clear</option>
                         {teamMembers.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
                       </Sel>
                     </div>
                     <div>
-                      <span style={{fontSize:10,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Set Status</span>
+                      <span style={{fontSize:12,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Set Status</span>
                       <Sel defaultValue="" onChange={e=>{if(!e.target.value)return;setItems(prev=>prev.map(x=>x._ticked?{...x,status:e.target.value,lastUpdated:todayStr()}:x));showBulkToast(`Status → ${e.target.value} ✓`);e.target.value="";}} style={{fontSize:11,padding:"5px 8px"}}>
                         <option value="">— Pick —</option>
                         {["Pending","In Progress","Done","Blocked","On Hold"].map(s=><option key={s} value={s}>{s}</option>)}
@@ -234,7 +234,7 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
                   </div>
                   {canApprv&&(
                     <div style={{display:"flex",gap:8,flexWrap:"wrap",paddingTop:10,borderTop:"1px solid var(--bdr)"}}>
-                      <span style={{fontSize:10,color:"var(--txt3)",fontFamily:"IBM Plex Mono",alignSelf:"center"}}>BULK APPROVE:</span>
+                      <span style={{fontSize:12,color:"var(--txt3)",fontWeight:500,alignSelf:"center"}}>BULK APPROVE:</span>
                       <Btn v="amber" style={{fontSize:11,padding:"4px 12px"}} onClick={()=>{setItems(prev=>prev.map(x=>x._ticked?{...x,tmApproval:"Approved",lastUpdated:todayStr()}:x));showBulkToast("TM Approved ✓");}}>✓ TM All</Btn>
                       <Btn v="ghost" style={{fontSize:11,padding:"4px 12px",color:"var(--blue)"}} onClick={()=>{setItems(prev=>prev.map(x=>x._ticked&&x.tmApproval==="Approved"?{...x,pmApproval:"Approved",lastUpdated:todayStr()}:x));showBulkToast("PM Approved ✓");}}>✓ PM All</Btn>
                       <Btn v="success" style={{fontSize:11,padding:"4px 12px"}} onClick={()=>{setItems(prev=>prev.map(x=>x._ticked&&x.pmApproval==="Approved"?{...x,clientApproval:"Approved",lastUpdated:todayStr()}:x));showBulkToast("Client Approved ✓");}}>✓ Client All</Btn>
@@ -287,18 +287,18 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
                           <td onClick={e=>e.stopPropagation()}>{canEdit?<Inp type="date" value={item.startDate||""} onChange={e=>upd(item.id,"startDate",e.target.value)} style={{padding:"3px 4px",fontSize:10}}/>:<span style={{fontSize:10,color:"var(--txt2)"}}>{item.startDate?fmtShort(item.startDate):"—"}</span>}</td>
                           <td onClick={e=>e.stopPropagation()}>{canEdit?<Inp type="date" value={item.endDate||""} onChange={e=>upd(item.id,"endDate",e.target.value)} style={{padding:"3px 4px",fontSize:10}}/>:<span style={{fontSize:10,color:"var(--txt2)"}}>{item.endDate?fmtShort(item.endDate):"—"}</span>}</td>
                           <td onClick={e=>e.stopPropagation()}>
-                            {canEdit?<select value={item.status} onChange={e=>upd(item.id,"status",e.target.value)} style={{background:"transparent",border:"none",color:{Done:"var(--green)",Blocked:"var(--red)","In Progress":"var(--blue)","On Hold":"var(--amber)",Pending:"var(--txt2)"}[item.status],fontSize:10,outline:"none",cursor:"pointer",fontWeight:700,fontFamily:"IBM Plex Mono",width:"100%"}}>
+                            {canEdit?<select value={item.status} onChange={e=>upd(item.id,"status",e.target.value)} style={{background:"transparent",border:"none",color:{Done:"var(--green)",Blocked:"var(--red)","In Progress":"var(--blue)","On Hold":"var(--amber)",Pending:"var(--txt2)"}[item.status],fontSize:10,outline:"none",cursor:"pointer",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace",width:"100%"}}>
                               {["Pending","In Progress","Done","Blocked","On Hold"].map(o=><option key={o}>{o}</option>)}
                             </select>:<Tag label={item.status} color={{Done:"var(--green)",Blocked:"var(--red)","In Progress":"var(--blue)","On Hold":"var(--amber)"}[item.status]}/>}
                           </td>
                           <td style={{textAlign:"center",background:"var(--amber)04"}} onClick={e=>e.stopPropagation()}>
-                            {canApprvTM(item)?(<button onClick={()=>upd(item.id,"tmApproval",item.tmApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.tmApproval==="Approved"?"var(--green)":"var(--amber)40"}`,background:item.tmApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.tmApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"IBM Plex Mono"}}>{item.tmApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):<Tag label={item.tmApproval||"Pending"} color={AP3C[item.tmApproval||"Pending"]}/>}
+                            {canApprvTM(item)?(<button onClick={()=>upd(item.id,"tmApproval",item.tmApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.tmApproval==="Approved"?"var(--green)":"var(--amber)40"}`,background:item.tmApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.tmApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"}}>{item.tmApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):<Tag label={item.tmApproval||"Pending"} color={AP3C[item.tmApproval||"Pending"]}/>}
                           </td>
                           <td style={{textAlign:"center",background:"var(--blue)04"}} onClick={e=>e.stopPropagation()}>
-                            {canApprvPM(item)?(<button onClick={()=>upd(item.id,"pmApproval",item.pmApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.pmApproval==="Approved"?"var(--green)":"var(--blue)40"}`,background:item.pmApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.pmApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"IBM Plex Mono"}}>{item.pmApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):canApprv&&item.tmApproval!=="Approved"?(<span style={{fontSize:9,color:"var(--txt3)",fontFamily:"IBM Plex Mono"}}>Awaiting TM</span>):<Tag label={item.pmApproval||"Pending"} color={AP3C[item.pmApproval||"Pending"]}/>}
+                            {canApprvPM(item)?(<button onClick={()=>upd(item.id,"pmApproval",item.pmApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.pmApproval==="Approved"?"var(--green)":"var(--blue)40"}`,background:item.pmApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.pmApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"}}>{item.pmApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):canApprv&&item.tmApproval!=="Approved"?(<span style={{fontSize:9,color:"var(--txt3)",fontFamily:"'IBM Plex Mono',monospace"}}>Awaiting TM</span>):<Tag label={item.pmApproval||"Pending"} color={AP3C[item.pmApproval||"Pending"]}/>}
                           </td>
                           <td style={{textAlign:"center",background:"var(--green)04"}} onClick={e=>e.stopPropagation()}>
-                            {canApprvClient(item)?(<button onClick={()=>upd(item.id,"clientApproval",item.clientApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.clientApproval==="Approved"?"var(--green)":"var(--green)40"}`,background:item.clientApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.clientApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"IBM Plex Mono"}}>{item.clientApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):canApprv&&item.pmApproval!=="Approved"?(<span style={{fontSize:9,color:"var(--txt3)",fontFamily:"IBM Plex Mono"}}>{item.tmApproval!=="Approved"?"Awaiting TM":"Awaiting PM"}</span>):<Tag label={item.clientApproval||"Pending"} color={AP3C[item.clientApproval||"Pending"]}/>}
+                            {canApprvClient(item)?(<button onClick={()=>upd(item.id,"clientApproval",item.clientApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.clientApproval==="Approved"?"var(--green)":"var(--green)40"}`,background:item.clientApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.clientApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"}}>{item.clientApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):canApprv&&item.pmApproval!=="Approved"?(<span style={{fontSize:9,color:"var(--txt3)",fontFamily:"'IBM Plex Mono',monospace"}}>{item.tmApproval!=="Approved"?"Awaiting TM":"Awaiting PM"}</span>):<Tag label={item.clientApproval||"Pending"} color={AP3C[item.clientApproval||"Pending"]}/>}
                           </td>
                           <td onClick={e=>e.stopPropagation()}>{canEdit?<input value={item.remarks||""} onChange={e=>upd(item.id,"remarks",e.target.value)} placeholder="Notes…" style={{background:"transparent",border:"none",color:"var(--txt2)",fontSize:10,outline:"none",width:"100%"}}/>:<span style={{fontSize:10,color:"var(--txt2)"}}>{item.remarks||"—"}</span>}</td>
                           <td style={{textAlign:"center"}}>
@@ -318,7 +318,7 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
                 </tbody>
               </table>
             </div>
-            <div style={{marginTop:12}}><span style={{fontSize:10,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Notes / LLD Reference</span><TA value={note} onChange={e=>setNote(e.target.value)} rows={2} disabled={!canEdit} style={{fontSize:11,marginTop:4}} placeholder="LLD reference, design notes…"/></div>
+            <div style={{marginTop:12}}><span style={{fontSize:12,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Notes / LLD Reference</span><TA value={note} onChange={e=>setNote(e.target.value)} rows={2} disabled={!canEdit} style={{fontSize:11,marginTop:4}} placeholder="LLD reference, design notes…"/></div>
           </>
         )}
       </div>

@@ -73,7 +73,7 @@ const PMView=({projects,currentUser,openProject,users,setUsers,sidebarView,setSi
 
             {/* Project Table */}
             <div style={{background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,overflow:"hidden",boxShadow:"var(--shadow)",marginBottom:24}}>
-              <div style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px",gap:8,padding:"12px 16px",fontSize:11,color:"var(--txt2)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase",fontFamily:"IBM Plex Mono",borderBottom:"1px solid var(--bdr)",background:"var(--s2)"}}><span>Project</span><span>Tag</span><span>Start</span><span>End</span><span>PM</span><span>Status</span></div>
+              <div style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px",gap:8,padding:"12px 16px",fontSize:11,color:"var(--txt2)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase",borderBottom:"1px solid var(--bdr)",background:"var(--s2)"}}><span>Project</span><span>Tag</span><span>Start</span><span>End</span><span>PM</span><span>Status</span></div>
               {(subView==="mine"?myProjects:projects).map(p=>{const dl=daysLeft(p.endDate);const pm=getPM(p,users);const isMyProj=myProjects.some(mp=>mp.id===p.id);return(
                 <div key={p.id} onClick={()=>openProject(p)} style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px",gap:8,padding:"14px 16px",borderBottom:"1px solid var(--bdr)",cursor:"pointer",alignItems:"center",transition:"all .12s",opacity:isMyProj?1:0.7,background:"var(--card)"}}
                   onMouseEnter={e=>e.currentTarget.style.background="var(--s2)"}

@@ -346,7 +346,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
               <div style={{background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,padding:18,marginBottom:14,boxShadow:"var(--shadow)"}}>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:14,marginBottom:12}}>
                   <div>
-                    <span style={{fontSize:11,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Project Type</span>
+                    <span style={{fontSize:11,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Project Type</span>
                     {PROJECT_TAGS.map(t=>(
                       <label key={t.key} style={{display:"flex",alignItems:"center",gap:7,padding:"4px 0",cursor:"pointer"}}>
                         <input type="checkbox" checked={tagFilters.includes(t.key)} onChange={e=>setTagFilters(prev=>e.target.checked?[...prev,t.key]:prev.filter(x=>x!==t.key))} style={{accentColor:t.color}}/>
@@ -356,7 +356,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                     ))}
                   </div>
                   <div>
-                    <span style={{fontSize:11,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Sanction Status</span>
+                    <span style={{fontSize:11,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Sanction Status</span>
                     {[{v:"All",l:"All"},{v:"Sanctioned",l:"Sanctioned"},{v:"Pending",l:"Pending"}].map(o=>(
                       <label key={o.v} style={{display:"flex",alignItems:"center",gap:7,padding:"4px 0",cursor:"pointer"}}>
                         <input type="radio" name="sanction" checked={sanctionFilter===o.v} onChange={()=>setSanctionFilter(o.v)}/>
@@ -365,7 +365,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                     ))}
                   </div>
                   <div>
-                    <span style={{fontSize:11,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Project Manager</span>
+                    <span style={{fontSize:11,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Project Manager</span>
                     {pmUsers.map(u=>{
                       const pmProjects=projects.filter(p=>p.teamAssignments?.some(a=>a.userId===u.id&&["Senior PM","PM"].includes(a.role)));
                       return(
@@ -383,7 +383,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                     })}
                   </div>
                   <div>
-                    <span style={{fontSize:11,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Technical Manager</span>
+                    <span style={{fontSize:11,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Technical Manager</span>
                     {tmUsers.map(u=>{
                       const cnt=projects.filter(p=>p.teamAssignments?.some(a=>a.userId===u.id)).length;
                       return(
@@ -396,7 +396,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                     })}
                   </div>
                   <div>
-                    <span style={{fontSize:11,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Developer / Resource</span>
+                    <span style={{fontSize:11,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Developer / Resource</span>
                     {devUsers.map(u=>{
                       const cnt=projects.filter(p=>p.teamAssignments?.some(a=>a.userId===u.id)).length;
                       return(
@@ -409,14 +409,14 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                     })}
                   </div>
                   <div>
-                    <span style={{fontSize:11,fontWeight:700,color:"var(--txt2)",letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono"}}>Date Range</span>
+                    <span style={{fontSize:11,fontWeight:500,color:"var(--txt2)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Date Range</span>
                     <div style={{marginBottom:8}}><div style={{fontSize:10,color:"var(--txt3)",marginBottom:3}}>Start From</div><Inp type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{fontSize:11}}/></div>
                     <div><div style={{fontSize:10,color:"var(--txt3)",marginBottom:3}}>End Before</div><Inp type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{fontSize:11}}/></div>
                   </div>
                 </div>
                 {(tagFilters.length>0||pmFilters.length>0||tmFilters.length>0||devFilters.length>0||sanctionFilter!=="All"||dateFrom||dateTo)&&(
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:10,borderTop:"1px solid var(--bdr)",alignItems:"center"}}>
-                    <span style={{fontSize:11,color:"var(--txt3)",fontFamily:"IBM Plex Mono"}}>ACTIVE:</span>
+                    <span style={{fontSize:12,color:"var(--txt3)",fontWeight:500}}>ACTIVE:</span>
                     {tagFilters.map(t=><span key={t} style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",cursor:"pointer"}} onClick={()=>setTagFilters(prev=>prev.filter(x=>x!==t))}>{tagLabel(t)} ×</span>)}
                     {sanctionFilter!=="All"&&<span style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#fffbeb",color:"#d97706",border:"1px solid #fde68a"}}>{sanctionFilter} ×</span>}
                     {pmFilters.map(id=>{const u=users.find(x=>String(x.id)===id);return u?<span key={id} style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#fff7ed",color:"#ea580c",border:"1px solid #fed7aa"}}>PM: {u.name} ×</span>:null;})}
@@ -441,7 +441,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
 
             {/* Project Table */}
             <div style={{background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,overflow:"hidden",boxShadow:"var(--shadow)",marginBottom:24}}>
-              <div style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px 110px 50px",gap:8,padding:"12px 16px",fontSize:11,color:"var(--txt2)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase",fontFamily:"IBM Plex Mono",borderBottom:"1px solid var(--bdr)",background:"var(--s2)"}}>
+              <div style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px 110px 50px",gap:8,padding:"12px 16px",fontSize:11,color:"var(--txt2)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase",borderBottom:"1px solid var(--bdr)",background:"var(--s2)"}}>
                 <span>Project</span><span>Tag</span><span>Start</span><span>End</span><span>PM</span><span>Progress</span><span>Sanction</span><span/>
               </div>
               {filtered.length===0&&(
@@ -545,7 +545,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                       {p.startDate&&<span>Period: {fmtDate(p.startDate)} → {fmtDate(p.endDate)}</span>}
                     </div>
                     <div style={{padding:"10px 14px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,marginBottom:12}}>
-                      <div style={{fontSize:10,fontWeight:700,color:"#ef4444",fontFamily:"IBM Plex Mono",marginBottom:3}}>REJECTION DETAILS</div>
+                      <div style={{fontSize:12,fontWeight:500,color:"#ef4444",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:3}}>Rejection Details</div>
                       <div style={{fontSize:12,color:"var(--txt2)"}}>{p.rejectedReason||"No reason recorded."}</div>
                       {p.rejectedAt&&<div style={{fontSize:11,color:"var(--txt3)",marginTop:3,fontFamily:"IBM Plex Mono"}}>Rejected on: {fmtDate(p.rejectedAt)}</div>}
                     </div>

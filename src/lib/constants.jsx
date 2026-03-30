@@ -78,15 +78,15 @@ const DARK = {
   "--bg":"#0c0e13","--s1":"#111520","--s2":"#161c2a","--s3":"#1e2740",
   "--bdr":"#1f2d4a","--bdr2":"#2a3d60","--card":"#111520",
   "--txt":"#e2e8f5","--txt2":"#7a90b8","--txt3":"#3d5080",
-  "--acc":"#2563eb","--green":"#16a34a","--red":"#ff3d5a","--amber":"#d97706","--blue":"#2563eb","--purple":"#c678ff","--coral":"#ff6b35",
+  "--acc":"#2563eb","--green":"#16a34a","--red":"#dc2626","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
   "--shadow":"0 2px 12px #0008",
 };
 const LIGHT = {
   "--bg":"#f8fafc","--s1":"#ffffff","--s2":"#f1f5f9","--s3":"#e2e8f0",
   "--bdr":"#e2e8f0","--bdr2":"#cbd5e1","--card":"#ffffff",
   "--txt":"#1e293b","--txt2":"#64748b","--txt3":"#94a3b8",
-  "--acc":"#2563eb","--green":"#16a34a","--red":"#ef4444","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
-  "--shadow":"0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+  "--acc":"#2563eb","--green":"#16a34a","--red":"#dc2626","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
+  "--shadow":"0 1px 3px rgba(0,0,0,0.05)",
 };
 
 export const applyTheme=(isDark)=>{
@@ -102,7 +102,7 @@ export const fmtDate=(d)=>d?new Date(d).toLocaleDateString("en-IN",{day:"2-digit
 export const fmtShort=(d)=>d?new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short"}):"—";
 export const UNIQ=()=>Math.random().toString(36).slice(2,9);
 export const initials=(name)=>name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-export const avColors=["#00c8ff","#ff6b35","#00e096","#ffb830","#c678ff","#ff3d5a","#4ecdc4","#f7b731","#a29bfe","#fd79a8","#26de81","#fd9644"];
+export const avColors=["#2563eb","#ea580c","#16a34a","#d97706","#7c3aed","#dc2626","#4ecdc4","#f7b731","#a29bfe","#fd79a8","#26de81","#fd9644"];
 
 export const getUser=(id,users)=>users.find(x=>x.id===id);
 export const nonAdmins=(users)=>users.filter(u=>u.role!=="superadmin");
@@ -126,13 +126,16 @@ export const getHalfMonths=(fromDate,count=6)=>{
   return periods;
 };
 
+/* ─── MONO FONT — only for code values / IDs ─────────────────*/
+export const MONO="'IBM Plex Mono',monospace";
+
 /* ─── GLOBAL STYLES ────────────────────────────────────────────*/
 export const G=({isDark})=>(
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body,#root{height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
-    input,select,textarea,button{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transition:background .2s,border-color .2s,color .2s}
+    html,body,#root{height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+    input,select,textarea,button{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;transition:background .2s,border-color .2s,color .2s}
     ::-webkit-scrollbar{width:5px;height:5px}
     ::-webkit-scrollbar-track{background:transparent}
     ::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
@@ -143,17 +146,17 @@ export const G=({isDark})=>(
     input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px;cursor:pointer}
     table{border-collapse:collapse;width:100%}
     th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--bdr);font-size:13px}
-    th{font-size:11px;font-weight:600;color:var(--txt2);letter-spacing:.04em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;background:var(--s2);white-space:nowrap}
+    th{font-size:11px;font-weight:600;color:var(--txt2);letter-spacing:.04em;text-transform:uppercase;background:var(--s2);white-space:nowrap}
     tbody tr{transition:background .15s}
-    tbody tr:hover td{background:var(--s2)}
+    tbody tr:hover td{background:#f8fafc}
     td{vertical-align:middle}
-    .card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;box-shadow:var(--shadow)}
-    .inp-base{width:100%;background:var(--s1);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);padding:8px 12px;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s}
+    .card{background:var(--card);border:1px solid var(--bdr);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+    .inp-base{width:100%;background:var(--s1);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);padding:8px 12px;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}
     .inp-base:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
     select option{background:var(--s1);color:var(--txt)}
     .dash-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;position:relative;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
     .dash-stat-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08);transform:translateY(-1px)}
-    .project-row{display:grid;gap:8px;padding:14px 16px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;margin-bottom:6px;align-items:center;transition:all .15s;cursor:pointer}
+    .project-row{display:grid;gap:8px;padding:14px 16px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;margin-bottom:6px;align-items:center;transition:all .15s;cursor:pointer}
     .project-row:hover{background:var(--s2);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
     .status-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
     .start-card{border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;min-height:140px;display:flex;flex-direction:column;justify-content:flex-end}

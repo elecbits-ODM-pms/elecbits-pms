@@ -92,7 +92,7 @@ const ResourcesView=({projects,users,setUsers,isAdmin,currentUser})=>{
     showToast(status==="approved"?"Holiday approved ✓":"Rejected","var(--green)");
   };
 
-  const NB=({id,label})=><button onClick={()=>setSubView(id)} style={{padding:"6px 12px",background:"none",border:"none",cursor:"pointer",fontSize:10,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"IBM Plex Mono",color:subView===id?"var(--acc)":"var(--txt2)",borderBottom:`2px solid ${subView===id?"var(--acc)":"transparent"}`,transition:"all .15s"}}>{label}</button>;
+  const NB=({id,label})=><button onClick={()=>setSubView(id)} style={{padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:500,color:subView===id?"#2563eb":"#64748b",borderBottom:`2px solid ${subView===id?"#2563eb":"transparent"}`,transition:"all .15s"}}>{label}</button>;
 
   return(
     <div style={{flex:1,overflow:"auto",padding:22}}>
