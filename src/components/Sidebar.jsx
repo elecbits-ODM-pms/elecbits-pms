@@ -38,13 +38,35 @@ const icons = {
 const navItems = [
   { id: "projects", icon: "dashboard", label: "Dashboard" },
   { id: "all-projects", icon: "projects", label: "Projects" },
-  { id: "resources", icon: "analytics", label: "Resources" },
-  { id: "alerts", icon: "services", label: "Alerts" },
-  { id: "settings", icon: "shield", label: "Settings" },
+  { id: "resources", icon: "analytics", label: "Analytics" },
+  { id: "alerts", icon: "services", label: "Services" },
+  { id: "settings", icon: "shield", label: "Security" },
 ];
+
+const Tooltip = ({ label }) => (
+  <div style={{
+    position: "absolute",
+    left: 52,
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "#1e293b",
+    color: "#ffffff",
+    padding: "4px 10px",
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 500,
+    whiteSpace: "nowrap",
+    zIndex: 100,
+    pointerEvents: "none",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+  }}>
+    {label}
+  </div>
+);
 
 const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [hoveredLogout, setHoveredLogout] = useState(false);
 
   return (
     <div style={{
@@ -62,8 +84,8 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
     }}>
       {/* Logo */}
       <div style={{
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 40,
         marginBottom: 24,
         display: "flex",
         alignItems: "center",
@@ -73,10 +95,15 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
         <img
           src={EB_LOGO_URL}
           alt="Elecbits"
-          style={{ width: 34, height: 34, objectFit: "contain" }}
+          style={{
+            width: 40,
+            height: 40,
+            objectFit: "contain",
+            filter: "brightness(0) invert(1)",
+          }}
           onError={(e) => {
             e.target.style.display = "none";
-            e.target.parentElement.innerHTML = '<div style="width:34px;height:34px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font-size:16px;font-family:IBM Plex Mono;font-weight:700;color:#fff">E</span></div>';
+            e.target.parentElement.innerHTML = '<div style="width:36px;height:36px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font-size:16px;font-family:IBM Plex Mono;font-weight:700;color:#fff">EB</span></div>';
           }}
         />
       </div>
@@ -92,7 +119,6 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
               onClick={() => onChangeView(item.id)}
               onMouseEnter={() => setHoveredItem(item.id)}
               onMouseLeave={() => setHoveredItem(null)}
-              title={item.label}
               style={{
                 width: 40,
                 height: 40,
@@ -118,6 +144,7 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
                   borderRadius: "0 3px 3px 0",
                 }}/>
               )}
+              {isHovered && <Tooltip label={item.label} />}
             </div>
           );
         })}
@@ -143,9 +170,8 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
         </div>
         <div
           onClick={onLogout}
-          onMouseEnter={(e) => e.currentTarget.style.color = "#ef4444"}
-          onMouseLeave={(e) => e.currentTarget.style.color = "#475569"}
-          title="Sign out"
+          onMouseEnter={() => setHoveredLogout(true)}
+          onMouseLeave={() => setHoveredLogout(false)}
           style={{
             width: 36,
             height: 36,
@@ -155,10 +181,12 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
             justifyContent: "center",
             cursor: "pointer",
             transition: "all .15s",
-            color: "#475569",
+            color: hoveredLogout ? "#ef4444" : "#475569",
+            position: "relative",
           }}
         >
           {icons.logout}
+          {hoveredLogout && <Tooltip label="Sign out" />}
         </div>
       </div>
     </div>

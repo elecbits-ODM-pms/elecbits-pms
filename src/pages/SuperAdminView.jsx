@@ -218,7 +218,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
             <div className="dash-stat-card">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#0f172a",lineHeight:1}}>{activeProjects.length}</div>
+                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{activeProjects.length}</div>
                   <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Total Projects</div>
                 </div>
                 <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -229,7 +229,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
             <div className="dash-stat-card">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#0f172a",lineHeight:1}}>{pendingSanctionCount}</div>
+                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{pendingSanctionCount}</div>
                   <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Pending Sanction</div>
                 </div>
                 <div style={{width:36,height:36,borderRadius:10,background:"#fffbeb",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -240,7 +240,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
             <div className="dash-stat-card">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#0f172a",lineHeight:1}}>{inProductionCount}</div>
+                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{inProductionCount}</div>
                   <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Active</div>
                 </div>
                 <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -251,7 +251,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
             <div className="dash-stat-card">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#0f172a",lineHeight:1}}>{completedCount}</div>
+                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{completedCount}</div>
                   <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Completed</div>
                 </div>
                 <div style={{width:36,height:36,borderRadius:10,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -271,7 +271,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
               {activeProjects.filter(p=>p.pendingSanction&&!p.sanctioned).map(p=>{const pm=getPM(p,users);return(
                 <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#ffffff",borderRadius:10,marginBottom:6,border:"1px solid #fde68a"}}>
                   <div style={{flex:1}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{p.name}</div>
+                    <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{p.name}</div>
                     <div style={{fontSize:12,color:"#64748b"}}>{p.projectId}{p.clientName&&` · ${p.clientName}`} · {fmtDate(p.startDate)} → {fmtDate(p.endDate)}</div>
                     {pm&&<div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>PM: {pm.name}</div>}
                   </div>

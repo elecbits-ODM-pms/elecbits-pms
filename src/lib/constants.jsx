@@ -84,7 +84,7 @@ const DARK = {
 const LIGHT = {
   "--bg":"#f8fafc","--s1":"#ffffff","--s2":"#f1f5f9","--s3":"#e2e8f0",
   "--bdr":"#e2e8f0","--bdr2":"#cbd5e1","--card":"#ffffff",
-  "--txt":"#0f172a","--txt2":"#64748b","--txt3":"#94a3b8",
+  "--txt":"#1e293b","--txt2":"#64748b","--txt3":"#94a3b8",
   "--acc":"#2563eb","--green":"#16a34a","--red":"#ef4444","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
   "--shadow":"0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
 };
@@ -129,10 +129,10 @@ export const getHalfMonths=(fromDate,count=6)=>{
 /* ─── GLOBAL STYLES ────────────────────────────────────────────*/
 export const G=({isDark})=>(
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body,#root{height:100%;background:var(--bg);color:var(--txt);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
-    input,select,textarea,button{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;transition:background .2s,border-color .2s,color .2s}
+    html,body,#root{height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+    input,select,textarea,button{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transition:background .2s,border-color .2s,color .2s}
     ::-webkit-scrollbar{width:5px;height:5px}
     ::-webkit-scrollbar-track{background:transparent}
     ::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}

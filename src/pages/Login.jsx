@@ -42,12 +42,12 @@ const Login=({onLogin,isDark,toggleTheme})=>{
           <div style={{fontSize:13,color:"#94a3b8",letterSpacing:"0.02em"}}>Project Management System</div>
         </div>
         <div style={{background:"#ffffff",border:"1px solid #e2e8f0",borderRadius:16,padding:"32px 28px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)"}}>
-          <div style={{fontSize:18,fontWeight:700,color:"#0f172a",marginBottom:4}}>Welcome back</div>
+          <div style={{fontSize:18,fontWeight:700,color:"#1e293b",marginBottom:4}}>Welcome back</div>
           <div style={{fontSize:13,color:"#64748b",marginBottom:24}}>Sign in to your account to continue</div>
           <div style={{marginBottom:16}}>
             <label style={{fontSize:13,fontWeight:600,color:"#374151",marginBottom:6,display:"block"}}>Email</label>
             <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@elecbits.in" onKeyDown={e=>e.key==="Enter"&&submit()}
-              style={{width:"100%",padding:"10px 14px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:14,outline:"none",color:"#0f172a",background:"#f8fafc",transition:"all .15s"}}
+              style={{width:"100%",padding:"10px 14px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:14,outline:"none",color:"#1e293b",background:"#f8fafc",transition:"all .15s"}}
               onFocus={e=>{e.target.style.borderColor="#2563eb";e.target.style.boxShadow="0 0 0 3px rgba(37,99,235,0.1)";}}
               onBlur={e=>{e.target.style.borderColor="#e2e8f0";e.target.style.boxShadow="none";}}
             />
@@ -55,7 +55,7 @@ const Login=({onLogin,isDark,toggleTheme})=>{
           <div style={{marginBottom:24}}>
             <label style={{fontSize:13,fontWeight:600,color:"#374151",marginBottom:6,display:"block"}}>Password</label>
             <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="Enter your password" onKeyDown={e=>e.key==="Enter"&&submit()}
-              style={{width:"100%",padding:"10px 14px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:14,outline:"none",color:"#0f172a",background:"#f8fafc",transition:"all .15s"}}
+              style={{width:"100%",padding:"10px 14px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:14,outline:"none",color:"#1e293b",background:"#f8fafc",transition:"all .15s"}}
               onFocus={e=>{e.target.style.borderColor="#2563eb";e.target.style.boxShadow="0 0 0 3px rgba(37,99,235,0.1)";}}
               onBlur={e=>{e.target.style.borderColor="#e2e8f0";e.target.style.boxShadow="none";}}
             />

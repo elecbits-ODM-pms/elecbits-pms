@@ -35,7 +35,7 @@ const PMView=({projects,currentUser,openProject,users,setUsers,sidebarView,setSi
           {/* Stats */}
           <div style={{padding:"20px 32px",display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:16}}>
             <div className="dash-stat-card">
-              <div style={{fontSize:32,fontWeight:800,color:"#0f172a",lineHeight:1}}>{subView==="mine"?myProjects.length:projects.length}</div>
+              <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{subView==="mine"?myProjects.length:projects.length}</div>
               <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>{subView==="mine"?"My Projects":"All Projects"}</div>
             </div>
             <div className="dash-stat-card">

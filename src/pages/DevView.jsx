@@ -36,7 +36,7 @@ const DevView=({projects,currentUser,openProject,users,setUsers,sidebarView,setS
         {/* Stats */}
         <div style={{padding:"20px 32px",display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:16}}>
           <div className="dash-stat-card">
-            <div style={{fontSize:32,fontWeight:800,color:"#0f172a",lineHeight:1}}>{myProjects.length}</div>
+            <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{myProjects.length}</div>
             <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>My Projects</div>
           </div>
           <div className="dash-stat-card">
