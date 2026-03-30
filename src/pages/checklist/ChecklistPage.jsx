@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { RESOURCE_ROLES, CHECKLIST_DEFS, CL_OWNERS, DEFAULT_ITEMS, canEditCL, canApprove, genProdItems, mkItem, todayStr, fmtDate, fmtShort, UNIQ, getUser } from "../../lib/constants.jsx";
 import { insertNotifications, deleteNotifications } from "../../lib/db.js";
 import { Btn, Inp, Sel, TA, Lbl, Tag, Pill, Bar, Card, Toast } from "../../components/ui/index.jsx";
@@ -87,6 +87,16 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
     onSave({items:items.map(({_ticked,...rest})=>rest),note,auditStatus});
     setSaved(true);setTimeout(()=>setSaved(false),2500);
   };
+
+  // Auto-save: debounce writes to DB whenever items, note, or auditStatus change
+  const isFirstRender=useRef(true);
+  useEffect(()=>{
+    if(isFirstRender.current){isFirstRender.current=false;return;}
+    const tid=setTimeout(()=>{
+      onSave({items:items.map(({_ticked,...rest})=>rest),note,auditStatus});
+    },800);
+    return()=>clearTimeout(tid);
+  },[items,note,auditStatus]);
 
   const AP3C={Approved:"var(--green)",Rejected:"var(--red)","On Hold":"var(--amber)",Pending:"var(--txt3)"};
   const auditC={"Not Reviewed":"var(--txt3)",Approved:"var(--green)",Rejected:"var(--red)","In Review":"var(--amber)"};
