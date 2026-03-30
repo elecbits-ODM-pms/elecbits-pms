@@ -38,9 +38,9 @@ const icons = {
 const navItems = [
   { id: "projects", icon: "dashboard", label: "Dashboard" },
   { id: "all-projects", icon: "projects", label: "Projects" },
-  { id: "resources", icon: "analytics", label: "Analytics" },
-  { id: "alerts", icon: "services", label: "Services" },
-  { id: "settings", icon: "shield", label: "Security" },
+  { id: "resources", icon: "analytics", label: "Resources" },
+  { id: "alerts", icon: "services", label: "Alerts" },
+  { id: "settings", icon: "shield", label: "Settings" },
 ];
 
 const Tooltip = ({ label }) => (
@@ -166,7 +166,7 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
           color: "#94a3b8",
           fontFamily: "IBM Plex Mono",
         }}>
-          {user?.avatar || user?.name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?"}
+          {user?.name ? user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?"}
         </div>
         <div
           onClick={onLogout}
