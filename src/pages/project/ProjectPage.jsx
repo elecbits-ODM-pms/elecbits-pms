@@ -103,7 +103,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
     const pct_=items_.length?Math.round((done_/items_.length)*100):0;
     const aColor={"Not Reviewed":"var(--txt3)",Approved:"var(--green)",Rejected:"var(--red)","In Review":"var(--amber)"}[inst.auditStatus||"Not Reviewed"];
     return(
-      <div onClick={locked?undefined:onClick} className="card" style={{padding:14,cursor:locked?"default":"pointer",border:`1px solid ${items_.length?def.color+"30":"var(--bdr)"}`,opacity:locked?0.45:1,transition:"all .15s"}} onMouseEnter={e=>{if(!locked){e.currentTarget.style.background="var(--s2)";}}} onMouseLeave={e=>{e.currentTarget.style.background="var(--card)";}}>
+      <div onClick={locked?undefined:onClick} className="card" style={{padding:14,cursor:locked?"default":"pointer",border:`1px solid ${items_.length?def.color+"30":"var(--bdr)"}`,opacity:locked?0.45:1,transition:"all .15s"}} onMouseEnter={e=>{if(!locked){e.currentTarget.style.background="#faf5ff";}}} onMouseLeave={e=>{e.currentTarget.style.background="var(--card)";}}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
           <div style={{width:32,height:32,borderRadius:7,background:`${def.color}18`,border:`1px solid ${def.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{locked?"🔒":def.icon}</div>
           <div style={{flex:1}}>
@@ -150,7 +150,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
         </div>
       </div>
       <div style={{background:"var(--s1)",borderBottom:"1px solid var(--bdr)",padding:"0 22px",display:"flex"}}>
-        {[{id:"details",l:"Project Details"},{id:"execution",l:"Execution"},{id:"comms",l:"Client Communication"}].map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"9px 14px",background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:500,color:tab===t.id?"#2563eb":"#64748b",borderBottom:`2px solid ${tab===t.id?"#2563eb":"transparent"}`,transition:"all .15s",marginBottom:-1}}>{t.l}</button>)}
+        {[{id:"details",l:"Project Details"},{id:"execution",l:"Execution"},{id:"comms",l:"Client Communication"}].map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"9px 14px",background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:500,color:tab===t.id?"#6366f1":"#64748b",borderBottom:`2px solid ${tab===t.id?"#6366f1":"transparent"}`,transition:"all .15s",marginBottom:-1}}>{t.l}</button>)}
       </div>
 
       <div style={{flex:1,overflow:"auto",padding:22}}>

@@ -169,7 +169,7 @@ export default function App(){
       <div style={{textAlign:"center"}}>
         <img src="https://elecbits.in/wp-content/uploads/2025/06/EB-Logo.svg" alt="Elecbits" style={{width:40,height:40,marginBottom:12}} onError={(e)=>{e.target.style.display="none";}}/>
         <div style={{fontSize:11,color:"#64748b",fontFamily:"IBM Plex Mono",letterSpacing:"0.1em",marginBottom:8}}>LOADING...</div>
-        <div style={{width:120,height:2,background:"#e2e8f0",borderRadius:1,margin:"0 auto",overflow:"hidden"}}><div style={{height:"100%",background:"#2563eb",borderRadius:1,animation:"loadbar 1.5s ease-in-out infinite",width:"40%"}}/></div>
+        <div style={{width:120,height:2,background:"#e2e8f0",borderRadius:1,margin:"0 auto",overflow:"hidden"}}><div style={{height:"100%",background:"#6366f1",borderRadius:1,animation:"loadbar 1.5s ease-in-out infinite",width:"40%"}}/></div>
       </div>
     </div>
   );

@@ -184,7 +184,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
   const devUsers=users.filter(u=>["tester","soldering","devops","sc","sol_arch"].includes(u.resourceRole));
 
   const startCards = [
-    { tag: "engineering", title: "Engineering", subtitle: "Hardware & firmware projects", bg: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)", icon: "⚡", popular: true },
+    { tag: "engineering", title: "Engineering", subtitle: "Hardware & firmware projects", bg: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", icon: "⚡", popular: true },
     { tag: "elecbits_product", title: "EB Product", subtitle: "Internal product development", bg: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)", icon: "🔧" },
     { tag: "modifier", title: "Modifier", subtitle: "Design modifications & tweaks", bg: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)", icon: "✏️" },
     { tag: "new", title: "Custom", subtitle: "Start from scratch", bg: "linear-gradient(135deg, #475569 0%, #334155 100%)", icon: "+" },
@@ -195,10 +195,10 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
       <div style={{flex:1,overflow:"auto",padding:"0"}}>
         {view==="projects"&&<>
           {/* Top bar with Elecbits logo */}
-          <div style={{padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid var(--bdr)"}}>
+          <div style={{padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #e2e8f0",background:"#ffffff"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <img src={EB_LOGO_URL} alt="Elecbits" style={{height:28,objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>
-              <span style={{fontSize:14,fontWeight:700,color:"var(--txt)",letterSpacing:"-0.01em"}}>Elecbits PMS</span>
+              <span style={{fontSize:14,fontWeight:700,color:"#1e293b",letterSpacing:"-0.01em"}}>Elecbits PMS</span>
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <ThemeToggle isDark={isDark} toggle={toggleTheme}/>
@@ -207,16 +207,16 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
           {/* Welcome Header */}
           <div style={{padding:"24px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
-              <h1 style={{fontSize:26,fontWeight:800,color:"var(--txt)",margin:0,letterSpacing:"-0.02em"}}>Welcome back, {currentUser.name?.split(" ")[0] || "Admin"}</h1>
+              <h1 style={{fontSize:22,fontWeight:700,color:"#1e293b",margin:0,letterSpacing:"-0.02em"}}>Welcome back, {currentUser.name?.split(" ")[0] || "Admin"}</h1>
               <p style={{fontSize:14,color:"var(--txt2)",marginTop:4,fontWeight:400}}>Here's what's happening across your manufacturing projects</p>
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <button onClick={()=>setShowAdd(true)} style={{
-                padding:"10px 20px",background:"#2563eb",color:"#fff",border:"none",borderRadius:10,
+                padding:"10px 20px",background:"#6366f1",color:"#fff",border:"none",borderRadius:8,
                 fontSize:13,fontWeight:600,cursor:"pointer",transition:"all .15s",display:"flex",alignItems:"center",gap:6
               }}
-                onMouseEnter={e=>e.currentTarget.style.background="#1d4ed8"}
-                onMouseLeave={e=>e.currentTarget.style.background="#2563eb"}
+                onMouseEnter={e=>e.currentTarget.style.background="#4f46e5"}
+                onMouseLeave={e=>e.currentTarget.style.background="#6366f1"}
               >
                 <span style={{fontSize:16,lineHeight:1}}>+</span> New Project
               </button>
@@ -225,49 +225,21 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
 
           {/* Stats Row */}
           <div style={{padding:"20px 32px",display:"grid",gridTemplateColumns:"repeat(4, 1fr)",gap:16}}>
-            <div className="dash-stat-card">
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{activeProjects.length}</div>
-                  <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Total Projects</div>
-                </div>
-                <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                </div>
-              </div>
+            <div className="dash-stat-card" style={{borderLeft:"3px solid #6366f1"}}>
+              <div style={{fontSize:32,fontWeight:800,color:"#6366f1",lineHeight:1}}>{activeProjects.length}</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Total Projects</div>
             </div>
-            <div className="dash-stat-card">
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{pendingSanctionCount}</div>
-                  <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Pending Sanction</div>
-                </div>
-                <div style={{width:36,height:36,borderRadius:10,background:"#fffbeb",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </div>
-              </div>
+            <div className="dash-stat-card" style={{borderLeft:"3px solid #f59e0b"}}>
+              <div style={{fontSize:32,fontWeight:800,color:"#f59e0b",lineHeight:1}}>{pendingSanctionCount}</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Pending Sanction</div>
             </div>
-            <div className="dash-stat-card">
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{inProductionCount}</div>
-                  <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Active</div>
-                </div>
-                <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                </div>
-              </div>
+            <div className="dash-stat-card" style={{borderLeft:"3px solid #16a34a"}}>
+              <div style={{fontSize:32,fontWeight:800,color:"#16a34a",lineHeight:1}}>{inProductionCount}</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Active</div>
             </div>
-            <div className="dash-stat-card">
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div>
-                  <div style={{fontSize:32,fontWeight:800,color:"#1e293b",lineHeight:1}}>{completedCount}</div>
-                  <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Completed</div>
-                </div>
-                <div style={{width:36,height:36,borderRadius:10,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                </div>
-              </div>
+            <div className="dash-stat-card" style={{borderLeft:"3px solid #16a34a"}}>
+              <div style={{fontSize:32,fontWeight:800,color:"#16a34a",lineHeight:1}}>{completedCount}</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:6,fontWeight:500}}>Completed</div>
             </div>
           </div>
 
@@ -321,7 +293,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                   width:"100%",padding:"9px 12px 9px 36px",border:"1px solid var(--bdr)",borderRadius:10,fontSize:13,
                   background:"var(--card)",color:"var(--txt)",outline:"none"
                 }}
-                  onFocus={e=>{e.target.style.borderColor="#2563eb";e.target.style.boxShadow="0 0 0 3px rgba(37,99,235,0.08)";}}
+                  onFocus={e=>{e.target.style.borderColor="#6366f1";e.target.style.boxShadow="0 0 0 3px rgba(99,102,241,0.1)";}}
                   onBlur={e=>{e.target.style.borderColor="var(--bdr)";e.target.style.boxShadow="none";}}
                 />
               </div>
@@ -417,7 +389,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                 {(tagFilters.length>0||pmFilters.length>0||tmFilters.length>0||devFilters.length>0||sanctionFilter!=="All"||dateFrom||dateTo)&&(
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:10,borderTop:"1px solid var(--bdr)",alignItems:"center"}}>
                     <span style={{fontSize:12,color:"var(--txt3)",fontWeight:500}}>ACTIVE:</span>
-                    {tagFilters.map(t=><span key={t} style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",cursor:"pointer"}} onClick={()=>setTagFilters(prev=>prev.filter(x=>x!==t))}>{tagLabel(t)} ×</span>)}
+                    {tagFilters.map(t=><span key={t} style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#ede9fe",color:"#7c3aed",border:"1px solid #c4b5fd",cursor:"pointer"}} onClick={()=>setTagFilters(prev=>prev.filter(x=>x!==t))}>{tagLabel(t)} ×</span>)}
                     {sanctionFilter!=="All"&&<span style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#fffbeb",color:"#d97706",border:"1px solid #fde68a"}}>{sanctionFilter} ×</span>}
                     {pmFilters.map(id=>{const u=users.find(x=>String(x.id)===id);return u?<span key={id} style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#fff7ed",color:"#ea580c",border:"1px solid #fed7aa"}}>PM: {u.name} ×</span>:null;})}
                     {tmFilters.map(id=>{const u=users.find(x=>String(x.id)===id);return u?<span key={id} style={{padding:"3px 10px",borderRadius:99,fontSize:11,background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe"}}>TM: {u.name} ×</span>:null;})}
@@ -461,7 +433,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                 return(
                   <div key={p.id} style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 0.8fr 0.8fr 1fr 100px 110px 50px",gap:8,padding:"14px 16px",borderBottom:"1px solid var(--bdr)",alignItems:"center",transition:"all .12s",cursor:"pointer",background:"var(--card)"}}
                     onClick={()=>openProject(p)}
-                    onMouseEnter={e=>e.currentTarget.style.background="var(--s2)"}
+                    onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"}
                     onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}
                   >
                     <div>
@@ -471,8 +443,8 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                     <div>
                       {p.projectTag && (
                         <span className="status-pill" style={{
-                          background: p.projectTag==="engineering"?"#eff6ff":p.projectTag==="elecbits_product"?"#f0fdf4":"#f5f3ff",
-                          color: p.projectTag==="engineering"?"#2563eb":p.projectTag==="elecbits_product"?"#16a34a":"#7c3aed",
+                          background: p.projectTag==="engineering"?"#ede9fe":p.projectTag==="elecbits_product"?"#dcfce7":"#ede9fe",
+                          color: p.projectTag==="engineering"?"#7c3aed":p.projectTag==="elecbits_product"?"#16a34a":"#7c3aed",
                           fontSize:11
                         }}>{tagLabel(p.projectTag)}</span>
                       )}
@@ -481,17 +453,17 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
                     <span style={{fontSize:12,color:dl<7?"#ef4444":dl<14?"#d97706":"var(--txt2)"}}>{fmtDate(p.endDate)}</span>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>{pm&&<><Av uid={pm.id} size={22} users={users}/><span style={{fontSize:12,color:"var(--txt2)"}}>{pm.name}</span></>}</div>
                     <div onClick={e=>e.stopPropagation()}>
-                      <div style={{height:5,background:"var(--bdr)",borderRadius:99,overflow:"hidden"}}>
-                        <div style={{width:`${pct}%`,height:"100%",background:pct>=70?"#16a34a":pct>=40?"#2563eb":"#d97706",borderRadius:99,transition:"width .3s"}}/>
+                      <div style={{height:5,background:"#ede9fe",borderRadius:99,overflow:"hidden"}}>
+                        <div style={{width:`${pct}%`,height:"100%",background:"linear-gradient(90deg, #6366f1, #8b5cf6)",borderRadius:99,transition:"width .3s"}}/>
                       </div>
                     </div>
                     <div onClick={e=>e.stopPropagation()}>
                       {sanctionStatus==="done"?(
-                        <span className="status-pill" style={{background:"#f0fdf4",color:"#16a34a",fontSize:11,cursor:"pointer"}} onClick={()=>unsanctionProject(p.id)}>Sanctioned</span>
+                        <span className="status-pill" style={{background:"#dcfce7",color:"#16a34a",fontSize:11,cursor:"pointer"}} onClick={()=>unsanctionProject(p.id)}>Sanctioned</span>
                       ):sanctionStatus==="pending"?(
-                        <span className="status-pill" style={{background:"#fffbeb",color:"#d97706",fontSize:11,cursor:"pointer"}} onClick={()=>sanctionProject(p.id)}>Pending</span>
+                        <span className="status-pill" style={{background:"#fef3c7",color:"#d97706",fontSize:11,cursor:"pointer"}} onClick={()=>sanctionProject(p.id)}>Pending</span>
                       ):(
-                        <button onClick={()=>sanctionProject(p.id)} style={{padding:"4px 12px",background:"#2563eb",border:"none",borderRadius:99,fontSize:11,fontWeight:600,color:"#fff",cursor:"pointer"}}>Sanction</button>
+                        <button onClick={()=>sanctionProject(p.id)} style={{padding:"4px 12px",background:"#6366f1",border:"none",borderRadius:99,fontSize:11,fontWeight:600,color:"#fff",cursor:"pointer"}}>Sanction</button>
                       )}
                     </div>
                     <div onClick={e=>e.stopPropagation()} style={{display:"flex",justifyContent:"center"}}>
