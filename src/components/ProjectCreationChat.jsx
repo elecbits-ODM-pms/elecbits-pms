@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
 import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo } from "../lib/googleSheets.js";
+import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
+import { searchDriveFiles, readDoc } from "../lib/googleApi.js";
 
 /* ─── LLD QUESTIONS ──────────────────────────────────────────────*/
 const LLD_QUESTIONS = [
@@ -184,6 +186,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const [suggestions, setSuggestions] = useState([]);
   const [searchInfo, setSearchInfo] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [googleSignedIn, setGoogleSignedIn] = useState(isGoogleSignedIn());
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
   const stepHistory = useRef([]);
@@ -222,9 +225,14 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       case "init": {
         setActiveTab(0);
         await sysMsg("Hi! I'm the Elecbits project assistant. Let's set up your new project step by step.");
-        await sysMsg("What is the **client / company name**?" + (sheetClients.length > 0 ? " (Start typing — I'll check if they're already in our system)" : ""));
-        setInputDisabled(false);
-        setInputPlaceholder("e.g. Acme Corp");
+        // Prompt Google sign-in if configured but not signed in
+        if (isGoogleConfigured() && !isGoogleSignedIn()) {
+          await sysMsg(null, "googleSignIn");
+        } else {
+          await sysMsg("What is the **client / company name**?" + (sheetClients.length > 0 ? " (Start typing — I'll check if they're already in our system)" : ""));
+          setInputDisabled(false);
+          setInputPlaceholder("e.g. Acme Corp");
+        }
         break;
       }
       case "clientSearch": {
@@ -293,6 +301,11 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         setActiveTab(2);
         setDoneTab(1);
         await sysMsg("Does a Low-Level Design (LLD) document already exist for this product?", "lldChoice");
+        break;
+      }
+      case "lldDrive": {
+        setActiveTab(2);
+        await sysMsg("Search your Google Drive for the LLD document, or paste a URL:", "driveFilePicker");
         break;
       }
       case "lldUrl": {
@@ -568,6 +581,139 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     );
   };
 
+  /* ─── GOOGLE SIGN-IN WIDGET ────────────────────────────────────*/
+  const GoogleSignInWidget = () => {
+    const [loading, setLoading] = useState(false);
+    const handleSignIn = async () => {
+      setLoading(true);
+      const token = await signInWithGoogle();
+      setLoading(false);
+      if (token) {
+        setGoogleSignedIn(true);
+        // Refetch clients now that we have API access
+        const clients = await fetchClientsFromSheet();
+        setSheetClients(clients);
+        addMsg("system", `Connected to Google Drive (${clients.length} client${clients.length !== 1 ? "s" : ""} loaded from sheet).`);
+        await sysMsg("What is the **client / company name**?" + (clients.length > 0 ? " (Start typing — I'll check if they're already in our system)" : ""));
+        setInputDisabled(false);
+        setInputPlaceholder("e.g. Acme Corp");
+      } else {
+        addMsg("system", "Google sign-in was cancelled. You can still continue without it.");
+        await sysMsg("What is the **client / company name**?");
+        setInputDisabled(false);
+        setInputPlaceholder("e.g. Acme Corp");
+      }
+    };
+    const handleSkip = async () => {
+      await sysMsg("What is the **client / company name**?");
+      setInputDisabled(false);
+      setInputPlaceholder("e.g. Acme Corp");
+    };
+    return (
+      <div style={S.widget}>
+        <div style={{ padding:"10px 18px", background:"#fef3c7", borderBottom:"1px solid #fde68a", fontSize:12, fontWeight:600, color:"#92400e", display:"flex", alignItems:"center", gap:6 }}>
+          <span>🔗</span> Connect Google Drive
+        </div>
+        <div style={S.widgetInner}>
+          <div style={{ fontSize:13, color:"#475569", marginBottom:12, lineHeight:1.5 }}>
+            Sign in with Google to read/write client data from your spreadsheets and access LLD documents from Drive.
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.primaryBtn, flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, opacity:loading?0.6:1 }} disabled={loading} onClick={handleSignIn}>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+              {loading ? "Connecting..." : "Connect Google Account"}
+            </button>
+            <button style={S.secondaryBtn} onClick={handleSkip}>Skip</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ─── DRIVE FILE PICKER WIDGET (for LLD docs) ────────────────*/
+  const DriveFilePicker = () => {
+    const [driveFiles, setDriveFiles] = useState([]);
+    const [driveLoading, setDriveLoading] = useState(false);
+    const [driveQuery, setDriveQuery] = useState("");
+    const [searched, setSearched] = useState(false);
+
+    const searchDrive = async () => {
+      if (!driveQuery.trim()) return;
+      setDriveLoading(true);
+      setSearched(true);
+      try {
+        const files = await searchDriveFiles({
+          query: driveQuery,
+          maxResults: 10,
+        });
+        setDriveFiles(files);
+      } catch (err) {
+        console.error("[drive] search error:", err);
+        setDriveFiles([]);
+      }
+      setDriveLoading(false);
+    };
+
+    const selectFile = (file) => {
+      const url = file.webViewLink || `https://docs.google.com/document/d/${file.id}/edit`;
+      setData(d => ({ ...d, lldExists: true, lldUrl: url }));
+      addMsg("user", `Selected: ${file.name}`);
+      setTimeout(() => goStep("startDate"), 100);
+    };
+
+    const mimeIcon = (mime) => {
+      if (mime?.includes("spreadsheet")) return "📊";
+      if (mime?.includes("document")) return "📄";
+      if (mime?.includes("presentation")) return "📽";
+      if (mime?.includes("pdf")) return "📕";
+      return "📁";
+    };
+
+    return (
+      <div style={S.widget}>
+        <div style={{ padding:"10px 18px", background:"#eff6ff", borderBottom:"1px solid #bfdbfe", fontSize:12, fontWeight:600, color:"#1d4ed8", display:"flex", alignItems:"center", gap:6 }}>
+          <span>📂</span> Search Google Drive
+        </div>
+        <div style={S.widgetInner}>
+          <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+            <input style={S.miniInput} value={driveQuery} onChange={e => setDriveQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") searchDrive(); }}
+              placeholder="Search for LLD document..." />
+            <button style={S.primaryBtn} onClick={searchDrive} disabled={driveLoading}>
+              {driveLoading ? "..." : "Search"}
+            </button>
+          </div>
+          {searched && driveFiles.length === 0 && !driveLoading && (
+            <div style={{ fontSize:12, color:"#64748b", textAlign:"center", padding:8 }}>No files found</div>
+          )}
+          {driveFiles.length > 0 && (
+            <div style={{ maxHeight:200, overflow:"auto", borderRadius:6, border:"1px solid #e2e8f0" }}>
+              {driveFiles.map(f => (
+                <div key={f.id} style={{ padding:"8px 12px", cursor:"pointer", display:"flex", alignItems:"center", gap:8, borderBottom:"1px solid #f1f5f9", transition:"background .1s" }}
+                  onClick={() => selectFile(f)}
+                  onMouseEnter={e => e.currentTarget.style.background="#f0f9ff"}
+                  onMouseLeave={e => e.currentTarget.style.background="#fff"}>
+                  <span>{mimeIcon(f.mimeType)}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:"#1e293b", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.name}</div>
+                    <div style={{ fontSize:10, color:"#94a3b8" }}>{f.modifiedTime ? new Date(f.modifiedTime).toLocaleDateString() : ""}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ marginTop:8, display:"flex", gap:8 }}>
+            <button style={{ ...S.link, color:"#2563eb", fontSize:12 }} onClick={() => {
+              setInputDisabled(false);
+              setInputPlaceholder("Paste LLD document URL...");
+              addMsg("system", "Or paste the document URL directly:");
+            }}>Paste URL instead</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const ClientFoundCard = () => {
     const c = sheetClients.find(x => x.clientName.toLowerCase() === data.clientName.toLowerCase()) || {};
     return (
@@ -746,11 +892,19 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
 
   const LldChoiceCards = () => (
     <div style={{ display:"flex", gap:10, flexWrap:"wrap", maxWidth:"85%" }}>
-      <div style={S.optionCard(false)} onClick={() => { setData(d=>({...d, lldExists:true})); addMsg("user","Yes, LLD already exists"); setTimeout(()=>goStep("lldUrl"),100); }}
+      <div style={S.optionCard(false)} onClick={() => {
+        setData(d=>({...d, lldExists:true}));
+        addMsg("user","Yes, LLD already exists");
+        if (googleSignedIn) {
+          setTimeout(()=>goStep("lldDrive"),100);
+        } else {
+          setTimeout(()=>goStep("lldUrl"),100);
+        }
+      }}
         onMouseEnter={e=>{ e.currentTarget.style.borderColor="#2563eb"; e.currentTarget.style.background="#eff6ff"; }} onMouseLeave={e=>{ e.currentTarget.style.borderColor="#e2e8f0"; e.currentTarget.style.background="#fff"; }}>
         <div style={{ fontSize:24, marginBottom:6 }}>📄</div>
         <div style={{ fontWeight:700, fontSize:13, color:"#1e293b" }}>Yes, LLD already exists</div>
-        <div style={{ fontSize:11, color:"#64748b" }}>Share the document link</div>
+        <div style={{ fontSize:11, color:"#64748b" }}>{googleSignedIn ? "Browse Drive or paste link" : "Share the document link"}</div>
       </div>
       <div style={S.optionCard(false)} onClick={() => { setData(d=>({...d, lldExists:false})); addMsg("user","No, let's create one now"); setLldIndex(0); setTimeout(()=>goStep("lldQuestion"),100); }}
         onMouseEnter={e=>{ e.currentTarget.style.borderColor="#2563eb"; e.currentTarget.style.background="#eff6ff"; }} onMouseLeave={e=>{ e.currentTarget.style.borderColor="#e2e8f0"; e.currentTarget.style.background="#fff"; }}>
@@ -847,6 +1001,8 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   /* ─── RENDER ELEMENT ───────────────────────────────────────────*/
   const renderElement = (el) => {
     if (!el) return null;
+    if (el === "googleSignIn") return <GoogleSignInWidget />;
+    if (el === "driveFilePicker") return <DriveFilePicker />;
     if (el === "clientIdWidget") return <ClientIdWidget />;
     if (el === "clientFoundCard") return <ClientFoundCard />;
     if (el === "clientSearchResult") return <ClientSearchResult />;
@@ -882,7 +1038,13 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
                 <div style={S.headerSub}>AI-assisted project setup</div>
               </div>
             </div>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              {googleSignedIn && (
+                <span style={{ ...S.badge, background:"rgba(34,197,94,0.2)", color:"#bbf7d0", fontSize:10, display:"flex", alignItems:"center", gap:4 }}>
+                  <span style={{ width:6, height:6, borderRadius:"50%", background:"#4ade80", display:"inline-block" }} />
+                  Google Drive
+                </span>
+              )}
               <span style={S.badge}>Q {currentQ} of {totalSteps}</span>
               <button style={S.closeBtn} onClick={onClose}>✕</button>
             </div>
