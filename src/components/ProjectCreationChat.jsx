@@ -88,8 +88,9 @@ const UNIQ = () => Math.random().toString(36).slice(2, 9);
 
 /* ─── STYLES ─────────────────────────────────────────────────────*/
 const S = {
-  overlay: { position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:50, display:"flex", flexDirection:"column", backdropFilter:"blur(4px)" },
-  header: { background:"linear-gradient(135deg, #1e3a8a, #2563eb)", padding:"16px 24px 0", flexShrink:0 },
+  overlay: { position:"fixed", inset:0, background:"rgba(0,0,0,0.3)", zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", padding:16, backdropFilter:"blur(6px)" },
+  modal: { width:"100%", maxWidth:940, maxHeight:"92vh", display:"flex", flexDirection:"column", borderRadius:12, overflow:"hidden", background:"#fff", boxShadow:"0 20px 60px rgba(0,0,0,0.15)", animation:"fadeUp .2s ease" },
+  header: { background:"linear-gradient(135deg, #1e3a8a, #2563eb)", padding:"16px 24px 0", flexShrink:0, borderRadius:"12px 12px 0 0" },
   headerTop: { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 },
   headerLeft: { display:"flex", alignItems:"center", gap:12 },
   ebAvatar: { width:36, height:36, borderRadius:8, background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:800, color:"#fff", fontFamily:"'IBM Plex Mono',monospace" },
@@ -700,78 +701,80 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   if (!isOpen) return null;
 
   return (
-    <div style={S.overlay}>
+    <div style={S.overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       {/* Dot animation keyframes */}
       <style>{`@keyframes dotPulse{from{opacity:.3;transform:scale(.8)}to{opacity:1;transform:scale(1)}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`}</style>
 
-      {/* Header */}
-      <div style={S.header}>
-        <div style={S.headerTop}>
-          <div style={S.headerLeft}>
-            <div style={S.ebAvatar}>EB</div>
-            <div>
-              <div style={S.headerTitle}>Elecbits — New Project</div>
-              <div style={S.headerSub}>AI-assisted project setup</div>
+      <div style={S.modal}>
+        {/* Header */}
+        <div style={S.header}>
+          <div style={S.headerTop}>
+            <div style={S.headerLeft}>
+              <div style={S.ebAvatar}>EB</div>
+              <div>
+                <div style={S.headerTitle}>Elecbits — New Project</div>
+                <div style={S.headerSub}>AI-assisted project setup</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <span style={S.badge}>Q {currentQ} of {totalSteps}</span>
+              <button style={S.closeBtn} onClick={onClose}>✕</button>
             </div>
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <span style={S.badge}>Q {currentQ} of {totalSteps}</span>
-            <button style={S.closeBtn} onClick={onClose}>✕</button>
+          {/* Tab bar */}
+          <div style={S.tabBar}>
+            {TABS.map(t => (
+              <button key={t.idx} style={S.tab(activeTab === t.idx, t.idx <= doneTab)}>{t.label}</button>
+            ))}
           </div>
+          {/* Progress */}
+          <div style={S.progressWrap}><div style={S.progressFill(progressPct)} /></div>
         </div>
-        {/* Tab bar */}
-        <div style={S.tabBar}>
-          {TABS.map(t => (
-            <button key={t.idx} style={S.tab(activeTab === t.idx, t.idx <= doneTab)}>{t.label}</button>
-          ))}
+
+        {/* Messages */}
+        <div ref={bodyRef} style={S.body}>
+          {messages.map(msg => {
+            if (msg.element) {
+              return <div key={msg.id} style={{ animation:"fadeUp .25s ease both" }}>{renderElement(msg.element)}</div>;
+            }
+            const isUser = msg.role === "user";
+            return (
+              <div key={msg.id} style={S.msgRow(isUser)}>
+                {!isUser && <div style={S.sysAvatar}>EB</div>}
+                <div style={S.msgBubble(isUser)}>{msg.content}</div>
+              </div>
+            );
+          })}
+          {/* Typing indicator */}
+          {typing && (
+            <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
+              <div style={S.sysAvatar}>EB</div>
+              <div style={{ ...S.msgBubble(false), display:"flex", gap:4, padding:"14px 20px" }}>
+                <div style={S.dot(0)} /><div style={S.dot(1)} /><div style={S.dot(2)} />
+              </div>
+            </div>
+          )}
         </div>
-        {/* Progress */}
-        <div style={S.progressWrap}><div style={S.progressFill(progressPct)} /></div>
-      </div>
 
-      {/* Messages */}
-      <div ref={bodyRef} style={S.body}>
-        {messages.map(msg => {
-          if (msg.element) {
-            return <div key={msg.id} style={{ animation:"fadeUp .25s ease both" }}>{renderElement(msg.element)}</div>;
-          }
-          const isUser = msg.role === "user";
-          return (
-            <div key={msg.id} style={S.msgRow(isUser)}>
-              {!isUser && <div style={S.sysAvatar}>EB</div>}
-              <div style={S.msgBubble(isUser)}>{msg.content}</div>
-            </div>
-          );
-        })}
-        {/* Typing indicator */}
-        {typing && (
-          <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
-            <div style={S.sysAvatar}>EB</div>
-            <div style={{ ...S.msgBubble(false), display:"flex", gap:4, padding:"14px 20px" }}>
-              <div style={S.dot(0)} /><div style={S.dot(1)} /><div style={S.dot(2)} />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Input area */}
-      <div style={S.inputArea}>
-        <button style={S.link} onClick={goBack}>← Back</button>
-        <input
-          ref={inputRef}
-          style={S.textInput}
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
-          placeholder={inputPlaceholder}
-          disabled={inputDisabled}
-          onFocus={e => { e.target.style.borderColor="#2563eb"; }}
-          onBlur={e => { e.target.style.borderColor="#e2e8f0"; }}
-        />
-        <button style={{ ...S.sendBtn, opacity:inputDisabled?0.4:1 }} disabled={inputDisabled} onClick={handleSend}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-        <button style={S.link} onClick={handleSkip}>Skip →</button>
+        {/* Input area */}
+        <div style={S.inputArea}>
+          <button style={S.link} onClick={goBack}>← Back</button>
+          <input
+            ref={inputRef}
+            style={S.textInput}
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
+            placeholder={inputPlaceholder}
+            disabled={inputDisabled}
+            onFocus={e => { e.target.style.borderColor="#2563eb"; }}
+            onBlur={e => { e.target.style.borderColor="#e2e8f0"; }}
+          />
+          <button style={{ ...S.sendBtn, opacity:inputDisabled?0.4:1 }} disabled={inputDisabled} onClick={handleSend}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+          <button style={S.link} onClick={handleSkip}>Skip →</button>
+        </div>
       </div>
     </div>
   );
