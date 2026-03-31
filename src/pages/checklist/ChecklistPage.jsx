@@ -176,7 +176,7 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
           {canApprv?<Sel value={auditStatus} onChange={e=>setAuditStatus(e.target.value)} style={{width:130,padding:"4px 8px",fontSize:10,color:auditC[auditStatus]}}>{["Not Reviewed","In Review","Approved","Rejected"].map(o=><option key={o}>{o}</option>)}</Sel>:<Tag label={auditStatus} color={auditC[auditStatus]}/>}
           <div style={{width:90}}><Bar val={pct} color={def.color} thin/></div>
           <span style={{fontSize:12,fontWeight:600,color:def.color}}>{doneCount}/{items.length}</span>
-          <Btn v="primary" style={{padding:"5px 14px",fontSize:11}} onClick={save}>💾 Save</Btn>
+          <Btn v="success" style={{padding:"5px 14px",fontSize:11}} onClick={save}>💾 Save</Btn>
         </div>
       </div>
       {saved&&<div style={{position:"fixed",bottom:24,right:24,background:"var(--green)",color:"#fff",padding:"10px 20px",borderRadius:8,fontWeight:700,fontSize:13,zIndex:9999,animation:"fadeUp .2s ease",boxShadow:"var(--shadow)"}}>✓ Checklist saved successfully!</div>}
@@ -267,9 +267,9 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
                   <th style={{width:88}}>Start</th>
                   <th style={{width:88}}>End</th>
                   <th style={{width:88}}>Status</th>
-                  <th style={{width:100,textAlign:"center",background:"#ede9fe",color:"#7c3aed"}}>TM Approval</th>
-                  <th style={{width:100,textAlign:"center",background:"#dbeafe",color:"#2563eb"}}>PM Approval</th>
-                  <th style={{width:100,textAlign:"center",background:"#dcfce7",color:"#16a34a"}}>Client Approval</th>
+                  <th style={{width:100,textAlign:"center",background:"var(--amber)08",color:"var(--amber)"}}>TM Approval</th>
+                  <th style={{width:100,textAlign:"center",background:"var(--blue)08",color:"var(--blue)"}}>PM Approval</th>
+                  <th style={{width:100,textAlign:"center",background:"var(--green)08",color:"var(--green)"}}>Client Approval</th>
                   <th style={{width:86}}>Remarks</th>
                   <th style={{width:56,textAlign:"center"}}>Info</th>
                   <th style={{width:26}}/>
@@ -301,13 +301,13 @@ const ChecklistPage=({def,instance,onBack,onSave,currentUser,isGantt,project,use
                               {["Pending","In Progress","Done","Blocked","On Hold"].map(o=><option key={o}>{o}</option>)}
                             </select>:<Tag label={item.status} color={{Done:"var(--green)",Blocked:"var(--red)","In Progress":"var(--blue)","On Hold":"var(--amber)"}[item.status]}/>}
                           </td>
-                          <td style={{textAlign:"center",background:"#ede9fe40"}} onClick={e=>e.stopPropagation()}>
+                          <td style={{textAlign:"center",background:"var(--amber)04"}} onClick={e=>e.stopPropagation()}>
                             {canApprvTM(item)?(<button onClick={()=>upd(item.id,"tmApproval",item.tmApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.tmApproval==="Approved"?"var(--green)":"var(--amber)40"}`,background:item.tmApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.tmApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"}}>{item.tmApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):<Tag label={item.tmApproval||"Pending"} color={AP3C[item.tmApproval||"Pending"]}/>}
                           </td>
-                          <td style={{textAlign:"center",background:"#dbeafe40"}} onClick={e=>e.stopPropagation()}>
+                          <td style={{textAlign:"center",background:"var(--blue)04"}} onClick={e=>e.stopPropagation()}>
                             {canApprvPM(item)?(<button onClick={()=>upd(item.id,"pmApproval",item.pmApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.pmApproval==="Approved"?"var(--green)":"var(--blue)40"}`,background:item.pmApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.pmApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"}}>{item.pmApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):canApprv&&item.tmApproval!=="Approved"?(<span style={{fontSize:9,color:"var(--txt3)",fontFamily:"'IBM Plex Mono',monospace"}}>Awaiting TM</span>):<Tag label={item.pmApproval||"Pending"} color={AP3C[item.pmApproval||"Pending"]}/>}
                           </td>
-                          <td style={{textAlign:"center",background:"#dcfce740"}} onClick={e=>e.stopPropagation()}>
+                          <td style={{textAlign:"center",background:"var(--green)04"}} onClick={e=>e.stopPropagation()}>
                             {canApprvClient(item)?(<button onClick={()=>upd(item.id,"clientApproval",item.clientApproval==="Approved"?"Pending":"Approved")} style={{width:"100%",padding:"4px 0",borderRadius:4,border:`1px solid ${item.clientApproval==="Approved"?"var(--green)":"var(--green)40"}`,background:item.clientApproval==="Approved"?"var(--green)18":"transparent",color:AP3C[item.clientApproval||"Pending"],fontSize:10,cursor:"pointer",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"}}>{item.clientApproval==="Approved"?"✓ Approved":"○ Pending"}</button>):canApprv&&item.pmApproval!=="Approved"?(<span style={{fontSize:9,color:"var(--txt3)",fontFamily:"'IBM Plex Mono',monospace"}}>{item.tmApproval!=="Approved"?"Awaiting TM":"Awaiting PM"}</span>):<Tag label={item.clientApproval||"Pending"} color={AP3C[item.clientApproval||"Pending"]}/>}
                           </td>
                           <td onClick={e=>e.stopPropagation()}>{canEdit?<input value={item.remarks||""} onChange={e=>upd(item.id,"remarks",e.target.value)} placeholder="Notes…" style={{background:"transparent",border:"none",color:"var(--txt2)",fontSize:10,outline:"none",width:"100%"}}/>:<span style={{fontSize:10,color:"var(--txt2)"}}>{item.remarks||"—"}</span>}</td>

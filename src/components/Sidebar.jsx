@@ -49,7 +49,7 @@ const Tooltip = ({ label }) => (
     left: 52,
     top: "50%",
     transform: "translateY(-50%)",
-    background: "#1e1b4b",
+    background: "#1e293b",
     color: "#ffffff",
     padding: "4px 10px",
     borderRadius: 6,
@@ -73,7 +73,7 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
       width: 60,
       minWidth: 60,
       height: "100vh",
-      background: "linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%)",
+      background: "#0f172a",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -82,10 +82,12 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
       flexShrink: 0,
       zIndex: 100,
     }}>
-      {/* Logo — Elecbits SVG, white/inverted */}
+      {/* Logo — blue XOR square */}
       <div style={{
         width: 36,
         height: 36,
+        background: "#2563eb",
+        borderRadius: 8,
         marginBottom: 24,
         display: "flex",
         alignItems: "center",
@@ -93,13 +95,7 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
         cursor: "pointer",
         flexShrink: 0,
       }} onClick={() => onChangeView("projects")}>
-        <img src={EB_LOGO_URL} alt="Elecbits" style={{height:36,objectFit:"contain",filter:"brightness(0) invert(1)"}} onError={(e)=>{
-          e.target.style.display="none";
-          e.target.nextSibling.style.display="flex";
-        }}/>
-        <div style={{display:"none",width:36,height:36,background:"rgba(255,255,255,0.25)",borderRadius:8,alignItems:"center",justifyContent:"center"}}>
-          <span style={{ fontSize: 13, fontFamily: "IBM Plex Mono", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>EB</span>
-        </div>
+        <span style={{ fontSize: 13, fontFamily: "IBM Plex Mono", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>XOR</span>
       </div>
 
       {/* Navigation */}
@@ -116,19 +112,28 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 8,
+                borderRadius: 10,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
                 transition: "all .15s",
-                background: isActive ? "rgba(255,255,255,0.25)" : "transparent",
-                color: "#ffffff",
-                opacity: isActive ? 1 : isHovered ? 1 : 0.6,
+                background: isActive ? "#2563eb" : isHovered ? "#1e293b" : "transparent",
+                color: isActive ? "#ffffff" : isHovered ? "#94a3b8" : "#475569",
                 position: "relative",
               }}
             >
               {icons[item.icon]}
+              {isActive && (
+                <div style={{
+                  position: "absolute",
+                  left: -8,
+                  width: 3,
+                  height: 20,
+                  background: "#2563eb",
+                  borderRadius: "0 3px 3px 0",
+                }}/>
+              )}
               {isHovered && <Tooltip label={item.label} />}
             </div>
           );
@@ -141,14 +146,14 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
           width: 32,
           height: 32,
           borderRadius: "50%",
-          background: "rgba(255,255,255,0.2)",
-          border: "2px solid rgba(255,255,255,0.4)",
+          background: "#1e293b",
+          border: "2px solid #334155",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontSize: 11,
           fontWeight: 700,
-          color: "#ffffff",
+          color: "#94a3b8",
           fontFamily: "IBM Plex Mono",
         }}>
           {user?.name ? user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?"}
@@ -166,8 +171,7 @@ const Sidebar = ({ activeView, onChangeView, onLogout, user }) => {
             justifyContent: "center",
             cursor: "pointer",
             transition: "all .15s",
-            color: "#ffffff",
-            opacity: hoveredLogout ? 1 : 0.6,
+            color: hoveredLogout ? "#ef4444" : "#475569",
             position: "relative",
           }}
         >

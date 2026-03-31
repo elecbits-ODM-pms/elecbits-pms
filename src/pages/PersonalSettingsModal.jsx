@@ -12,7 +12,7 @@ const PersonalSettingsModal=({user,onClose,allProjects,onSave,showToast})=>{
   return(
     <Modal title="Personal Settings" onClose={onClose} maxW={500}>
       <div style={{display:"flex",gap:2,marginBottom:16,borderBottom:"1px solid var(--bdr)"}}>
-        {["holidays","wallpaper"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:500,color:tab===t?"#6366f1":"#64748b",borderBottom:`2px solid ${tab===t?"#6366f1":"transparent"}`,marginBottom:-1}}>{t==="holidays"?"Tentative Holidays":"Wallpaper"}</button>)}
+        {["holidays","wallpaper"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:500,color:tab===t?"#2563eb":"#64748b",borderBottom:`2px solid ${tab===t?"#2563eb":"transparent"}`,marginBottom:-1}}>{t==="holidays"?"Tentative Holidays":"Wallpaper"}</button>)}
       </div>
       {tab==="holidays"&&<div>
         <div style={{fontSize:12,color:"var(--txt2)",marginBottom:12,lineHeight:1.6}}>Mark planned holidays. Super Admin will approve — approved holidays affect availability calculations.</div>

@@ -78,15 +78,15 @@ const DARK = {
   "--bg":"#0c0e13","--s1":"#111520","--s2":"#161c2a","--s3":"#1e2740",
   "--bdr":"#1f2d4a","--bdr2":"#2a3d60","--card":"#111520",
   "--txt":"#e2e8f5","--txt2":"#7a90b8","--txt3":"#3d5080",
-  "--acc":"#6366f1","--green":"#16a34a","--red":"#dc2626","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
+  "--acc":"#2563eb","--green":"#16a34a","--red":"#dc2626","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
   "--shadow":"0 2px 12px #0008",
 };
 const LIGHT = {
   "--bg":"#f8fafc","--s1":"#ffffff","--s2":"#f1f5f9","--s3":"#e2e8f0",
   "--bdr":"#e2e8f0","--bdr2":"#cbd5e1","--card":"#ffffff",
   "--txt":"#1e293b","--txt2":"#64748b","--txt3":"#94a3b8",
-  "--acc":"#6366f1","--green":"#16a34a","--red":"#dc2626","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
-  "--shadow":"0 1px 4px rgba(99,102,241,0.06)",
+  "--acc":"#2563eb","--green":"#16a34a","--red":"#dc2626","--amber":"#d97706","--blue":"#2563eb","--purple":"#7c3aed","--coral":"#ea580c",
+  "--shadow":"0 1px 3px rgba(0,0,0,0.05)",
 };
 
 export const applyTheme=(isDark)=>{
@@ -145,19 +145,19 @@ export const G=({isDark})=>(
     .fade{animation:fadeUp .25s ease both}
     input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px;cursor:pointer}
     table{border-collapse:collapse;width:100%}
-    th,td{text-align:left;padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:13px}
-    th{font-size:11px;font-weight:600;color:#64748b;letter-spacing:.06em;text-transform:uppercase;background:#f8fafc;white-space:nowrap}
+    th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--bdr);font-size:13px}
+    th{font-size:11px;font-weight:600;color:var(--txt2);letter-spacing:.04em;text-transform:uppercase;background:var(--s2);white-space:nowrap}
     tbody tr{transition:background .15s}
-    tbody tr:hover td{background:#faf5ff}
+    tbody tr:hover td{background:#f8fafc}
     td{vertical-align:middle}
-    .card{background:var(--card);border:1px solid var(--bdr);border-radius:10px;box-shadow:0 1px 4px rgba(99,102,241,0.06)}
-    .inp-base{width:100%;background:var(--s1);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);padding:9px 12px;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}
-    .inp-base:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.1)}
+    .card{background:var(--card);border:1px solid var(--bdr);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+    .inp-base{width:100%;background:var(--s1);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);padding:8px 12px;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}
+    .inp-base:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
     select option{background:var(--s1);color:var(--txt)}
-    .dash-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px;position:relative;transition:all .2s;box-shadow:0 1px 4px rgba(99,102,241,0.06)}
-    .dash-stat-card:hover{box-shadow:0 4px 12px rgba(99,102,241,0.1);transform:translateY(-1px)}
-    .project-row{display:grid;gap:8px;padding:14px 16px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;margin-bottom:6px;align-items:center;transition:all .15s;cursor:pointer}
-    .project-row:hover{background:#faf5ff;box-shadow:0 2px 8px rgba(99,102,241,0.06)}
+    .dash-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;position:relative;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+    .dash-stat-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08);transform:translateY(-1px)}
+    .project-row{display:grid;gap:8px;padding:14px 16px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;margin-bottom:6px;align-items:center;transition:all .15s;cursor:pointer}
+    .project-row:hover{background:var(--s2);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
     .status-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
     .start-card{border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;min-height:140px;display:flex;flex-direction:column;justify-content:flex-end}
     .start-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.12)}
