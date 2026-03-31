@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
+import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo } from "../lib/googleSheets.js";
 
 /* ─── LLD QUESTIONS ──────────────────────────────────────────────*/
 const LLD_QUESTIONS = [
@@ -179,6 +180,10 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const [lldIndex, setLldIndex] = useState(0);
   const [multiChips, setMultiChips] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+  const [sheetClients, setSheetClients] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [searchInfo, setSearchInfo] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
   const stepHistory = useRef([]);
@@ -217,9 +222,24 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       case "init": {
         setActiveTab(0);
         await sysMsg("Hi! I'm the Elecbits project assistant. Let's set up your new project step by step.");
-        await sysMsg("What is the **client / company name**?");
+        await sysMsg("What is the **client / company name**?" + (sheetClients.length > 0 ? " (Start typing — I'll check if they're already in our system)" : ""));
         setInputDisabled(false);
         setInputPlaceholder("e.g. Acme Corp");
+        break;
+      }
+      case "clientSearch": {
+        setActiveTab(0);
+        setSearchLoading(true);
+        await sysMsg("Let me look up some info about this company...");
+        const info = await searchCompanyInfo(data.clientName);
+        setSearchInfo(info);
+        setSearchLoading(false);
+        await sysMsg(null, "clientSearchResult");
+        break;
+      }
+      case "clientFound": {
+        setActiveTab(0);
+        await sysMsg(null, "clientFoundCard");
         break;
       }
       case "clientId": {
@@ -333,6 +353,10 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   useEffect(() => {
     if (isOpen && !started.current) {
       started.current = true;
+      // Fetch existing clients from Google Sheet
+      fetchClientsFromSheet().then(clients => {
+        setSheetClients(clients);
+      });
       goStep("init");
     }
   }, [isOpen, goStep]);
@@ -348,6 +372,8 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       setActiveTab(0);
       setDoneTab(-1);
       setSubmitted(false);
+      setSuggestions([]);
+      setSearchInfo(null);
       stepHistory.current = [];
     }
   }, [isOpen]);
@@ -361,10 +387,19 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     setInputDisabled(true);
 
     switch (currentStep) {
-      case "init":
+      case "init": {
         setData(d => ({ ...d, clientName: val }));
-        setTimeout(() => goStep("clientId"), 100);
+        setSuggestions([]);
+        // Check if client already exists in the sheet
+        const existing = sheetClients.find(c => c.clientName.toLowerCase() === val.toLowerCase());
+        if (existing) {
+          setData(d => ({ ...d, clientName: existing.clientName, clientId: existing.clientId, contactName: existing.contactName || "", contactEmail: existing.contactEmail || "" }));
+          setTimeout(() => goStep("clientFound"), 100);
+        } else {
+          setTimeout(() => goStep("clientSearch"), 100);
+        }
         break;
+      }
       case "contact":
         setData(d => ({ ...d, contactName: val }));
         setTimeout(() => goStep("contactEmail"), 100);
@@ -460,6 +495,19 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       });
     }
 
+    // Write new client to Google Sheet (if it's a new client, not an existing one)
+    const alreadyInSheet = sheetClients.some(c => c.clientId === data.clientId);
+    if (!alreadyInSheet) {
+      appendClientToSheet({
+        clientName: data.clientName,
+        clientId: data.clientId,
+        industry: data._industry || "",
+        size: data._size || "",
+        contactName: data.contactName,
+        contactEmail: data.contactEmail,
+      });
+    }
+
     goStep("done");
   };
 
@@ -509,10 +557,92 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
           </div>
           <div style={{ padding:"10px 14px", background:"#f0f9ff", borderRadius:8, textAlign:"center", fontSize:18, fontWeight:800, fontFamily:"'IBM Plex Mono',monospace", color:"#1e3a8a", letterSpacing:"0.04em", marginBottom:12 }}>{genId}</div>
           <button style={{ ...S.primaryBtn, width:"100%" }} onClick={() => {
-            setData(d=>({...d, clientId: genId}));
+            const indLabel = INDUSTRY_CODES.find(x=>x.code===industry)?.label || "";
+            const sizeLabel = ORG_SIZES.find(x=>x.code===orgSize)?.label || "";
+            setData(d=>({...d, clientId: genId, _industry: indLabel, _size: sizeLabel }));
             addMsg("user", genId);
             setTimeout(()=>goStep("contact"), 100);
           }}>Use this Client ID →</button>
+        </div>
+      </div>
+    );
+  };
+
+  const ClientFoundCard = () => {
+    const c = sheetClients.find(x => x.clientName.toLowerCase() === data.clientName.toLowerCase()) || {};
+    return (
+      <div style={S.widget}>
+        <div style={{ padding:"10px 18px", background:"#f0fdf4", borderBottom:"1px solid #bbf7d0", fontSize:12, fontWeight:600, color:"#16a34a", display:"flex", alignItems:"center", gap:6 }}>
+          <span>✓</span> Existing Client Found
+        </div>
+        <div style={S.widgetInner}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, fontSize:13, marginBottom:14 }}>
+            <div><span style={{ color:"#64748b" }}>Client:</span> <strong>{c.clientName || data.clientName}</strong></div>
+            <div><span style={{ color:"#64748b" }}>Client ID:</span> <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:700, color:"#2563eb" }}>{c.clientId || data.clientId}</span></div>
+            {c.industry && <div><span style={{ color:"#64748b" }}>Industry:</span> {c.industry}</div>}
+            {c.size && <div><span style={{ color:"#64748b" }}>Size:</span> {c.size}</div>}
+            {c.contactName && <div><span style={{ color:"#64748b" }}>Contact:</span> {c.contactName}</div>}
+            {c.contactEmail && <div><span style={{ color:"#64748b" }}>Email:</span> {c.contactEmail}</div>}
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.primaryBtn, flex:1 }} onClick={() => {
+              // Use existing client data and skip to contact (or project if contact exists)
+              if (c.contactName && c.contactEmail) {
+                setTimeout(() => goStep("projectName"), 100);
+              } else if (c.contactName) {
+                setTimeout(() => goStep("contactEmail"), 100);
+              } else {
+                setTimeout(() => goStep("contact"), 100);
+              }
+            }}>Use this client →</button>
+            <button style={S.secondaryBtn} onClick={() => {
+              setData(d => ({ ...d, clientId:"", contactName:"", contactEmail:"" }));
+              setTimeout(() => goStep("clientId"), 100);
+            }}>Create new ID instead</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ClientSearchResult = () => {
+    if (searchLoading) {
+      return (
+        <div style={{ ...S.msgBubble(false), maxWidth:"85%", display:"flex", alignItems:"center", gap:8 }}>
+          <div style={S.dot(0)} /><div style={S.dot(1)} /><div style={S.dot(2)} />
+          <span style={{ fontSize:12, color:"#64748b" }}>Searching...</span>
+        </div>
+      );
+    }
+    return (
+      <div style={S.widget}>
+        <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569", display:"flex", alignItems:"center", gap:6 }}>
+          <span>🔍</span> Company Info — {data.clientName}
+        </div>
+        <div style={S.widgetInner}>
+          {searchInfo ? (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:13, color:"#1e293b", lineHeight:1.6, marginBottom:8 }}>{searchInfo.abstract}</div>
+              {searchInfo.url && <a href={searchInfo.url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#2563eb", textDecoration:"none" }}>{searchInfo.url}</a>}
+              <div style={{ fontSize:10, color:"#94a3b8", marginTop:4 }}>Source: {searchInfo.source}</div>
+            </div>
+          ) : (
+            <div style={{ padding:"10px 0", fontSize:13, color:"#64748b", marginBottom:10 }}>
+              No automatic info found. You can verify manually:
+              <a href={`https://www.google.com/search?q=${encodeURIComponent(data.clientName + " company")}`} target="_blank" rel="noreferrer" style={{ display:"block", marginTop:6, color:"#2563eb", fontSize:12, textDecoration:"none" }}>🔗 Search "{data.clientName}" on Google →</a>
+            </div>
+          )}
+          <div style={{ fontSize:11, color:"#64748b", marginBottom:10 }}>Is this the right company?</div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.primaryBtn, flex:1 }} onClick={() => {
+              addMsg("user", "Yes, that's correct");
+              setTimeout(() => goStep("clientId"), 100);
+            }}>Yes, proceed →</button>
+            <button style={S.secondaryBtn} onClick={() => {
+              addMsg("user", "No, let me re-enter");
+              setTimeout(() => goStep("init"), 100);
+            }}>No, re-enter name</button>
+          </div>
         </div>
       </div>
     );
@@ -718,6 +848,8 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const renderElement = (el) => {
     if (!el) return null;
     if (el === "clientIdWidget") return <ClientIdWidget />;
+    if (el === "clientFoundCard") return <ClientFoundCard />;
+    if (el === "clientSearchResult") return <ClientSearchResult />;
     if (el === "projectTagPicker") return <ProjectTagPicker />;
     if (el === "projectIdWidget") return <ProjectIdWidget />;
     if (el === "startDatePicker") return <DateChips type="start" />;
@@ -791,19 +923,59 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         </div>
 
         {/* Input area */}
-        <div style={S.inputArea}>
+        <div style={{ ...S.inputArea, position:"relative" }}>
           <button style={S.link} onClick={goBack}>← Back</button>
-          <input
-            ref={inputRef}
-            style={S.textInput}
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
-            placeholder={inputPlaceholder}
-            disabled={inputDisabled}
-            onFocus={e => { e.target.style.borderColor="#2563eb"; }}
-            onBlur={e => { e.target.style.borderColor="#e2e8f0"; }}
-          />
+          <div style={{ flex:1, position:"relative" }}>
+            <input
+              ref={inputRef}
+              style={S.textInput}
+              value={inputValue}
+              onChange={e => {
+                const v = e.target.value;
+                setInputValue(v);
+                // Show autocomplete suggestions when typing client name
+                if (currentStep === "init" && v.length >= 2 && sheetClients.length > 0) {
+                  const matches = sheetClients.filter(c => c.clientName.toLowerCase().includes(v.toLowerCase())).slice(0, 5);
+                  setSuggestions(matches);
+                } else {
+                  setSuggestions([]);
+                }
+              }}
+              onKeyDown={e => { if (e.key === "Enter") { setSuggestions([]); handleSend(); } if (e.key === "Escape") setSuggestions([]); }}
+              placeholder={inputPlaceholder}
+              disabled={inputDisabled}
+              onFocus={e => { e.target.style.borderColor="#2563eb"; }}
+              onBlur={e => { e.target.style.borderColor="#e2e8f0"; setTimeout(()=>setSuggestions([]),200); }}
+            />
+            {/* Autocomplete dropdown */}
+            {suggestions.length > 0 && (
+              <div style={{ position:"absolute", bottom:"100%", left:0, right:0, marginBottom:4, background:"#fff", border:"1px solid #e2e8f0", borderRadius:10, boxShadow:"0 -4px 16px rgba(0,0,0,0.08)", overflow:"hidden", zIndex:10 }}>
+                <div style={{ padding:"6px 12px", fontSize:10, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:"0.06em", borderBottom:"1px solid #f1f5f9" }}>Existing clients in sheet</div>
+                {suggestions.map((c, i) => (
+                  <div key={i} style={{ padding:"10px 14px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid #f8fafc", transition:"background .1s" }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setInputValue(c.clientName);
+                      setSuggestions([]);
+                      setData(d => ({ ...d, clientName: c.clientName, clientId: c.clientId, contactName: c.contactName || "", contactEmail: c.contactEmail || "" }));
+                      addMsg("user", c.clientName);
+                      setInputValue("");
+                      setInputDisabled(true);
+                      setTimeout(() => goStep("clientFound"), 100);
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background="#f0f9ff"}
+                    onMouseLeave={e => e.currentTarget.style.background="#fff"}
+                  >
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:600, color:"#1e293b" }}>{c.clientName}</div>
+                      <div style={{ fontSize:11, color:"#64748b" }}>{c.industry || ""}{c.industry && c.size ? " · " : ""}{c.size || ""}</div>
+                    </div>
+                    <span style={{ fontSize:11, fontFamily:"'IBM Plex Mono',monospace", color:"#2563eb", fontWeight:600 }}>{c.clientId}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button style={{ ...S.sendBtn, opacity:inputDisabled?0.4:1 }} disabled={inputDisabled} onClick={handleSend}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
