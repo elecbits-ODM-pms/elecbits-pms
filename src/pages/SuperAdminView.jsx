@@ -4,6 +4,7 @@ import { updateUserWallpaper, sanctionProjectInDB, rejectProjectInDB } from "../
 import { supabase } from "../lib/supabase.js";
 import { Btn, Inp, Sel, Pill, Tag, Stat, Bar, Av, SH, Modal, Toast, ThemeToggle } from "../components/ui/index.jsx";
 import ProjectForm from "../components/ProjectForm.jsx";
+import ProjectCreationChat from "../components/ProjectCreationChat.jsx";
 import ResourcesView from "./resources/ResourcesView.jsx";
 import AlertsView from "./AlertsView.jsx";
 import PersonalSettingsModal from "./PersonalSettingsModal.jsx";
@@ -573,7 +574,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
         </div>
       )}
 
-      {showAdd&&<Modal title={prefillForm?.projectTag?"New "+({engineering:"Engineering",elecbits_product:"EB Product",modifier:"Modifier"}[prefillForm.projectTag]||"")+" Project":"New Project"} onClose={()=>{setShowAdd(false);setPrefillForm(null);}} wide><ProjectForm initial={prefillForm||undefined} onSave={saveProject} onClose={()=>{setShowAdd(false);setPrefillForm(null);}} allProjects={projects} users={users} isAdmin={true}/></Modal>}
+      <ProjectCreationChat isOpen={showAdd} onClose={()=>{setShowAdd(false);setPrefillForm(null);}} onProjectCreated={(proj)=>{setTimeout(()=>fetchProjects(),300);showToast("Submitted for sanction","var(--green)");}} users={users} allProjects={projects} currentUser={currentUser}/>
       {showSettings&&<PersonalSettingsModal user={currentUser} onClose={()=>setShowSettings(false)} isDark={isDark} toggleTheme={()=>{}} allProjects={projects} onSave={saveUserSettings} showToast={showToast}/>}
       {toast&&<Toast {...toast}/>}
     </div>

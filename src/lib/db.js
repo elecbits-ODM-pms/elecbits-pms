@@ -1,5 +1,12 @@
 import { supabase } from "./supabase.js";
 
+/*
+ * Run these SQL migrations in Supabase to support chat-based project creation:
+ *
+ *   ALTER TABLE projects ADD COLUMN IF NOT EXISTS lld_url TEXT;
+ *   ALTER TABLE projects ADD COLUMN IF NOT EXISTS lld_data JSONB;
+ */
+
 /* ─── AUTH ─────────────────────────────────────────────────────*/
 export const getSession = () => supabase.auth.getSession();
 export const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password });
