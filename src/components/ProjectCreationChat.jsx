@@ -65,23 +65,57 @@ const TABS = [
 ];
 
 const INDUSTRY_CODES = [
-  { label:"Consumer Electronics", code:"CE" },
-  { label:"Industrial / IoT", code:"IO" },
-  { label:"Medical", code:"MD" },
-  { label:"Automotive", code:"AU" },
-  { label:"Agriculture", code:"AG" },
-  { label:"Robotics", code:"RB" },
-  { label:"Smart Home", code:"SH" },
-  { label:"Wearable", code:"WR" },
-  { label:"Other", code:"OT" },
+  { label:"Electric Vehicle", code:"01" },
+  { label:"EMS", code:"02" },
+  { label:"Just IoT", code:"03" },
+  { label:"IIoT", code:"04" },
+  { label:"Home Automation", code:"05" },
+  { label:"Medical & Healthcare", code:"06" },
+  { label:"Energy Meter & Metering", code:"07" },
+  { label:"Wearables", code:"08" },
+  { label:"Camera & Opticals", code:"09" },
+  { label:"Agri Tech/Farm Tech/Food Tech", code:"10" },
+  { label:"AR/VR/AI", code:"11" },
+  { label:"Education-Tech/EdTech", code:"12" },
+  { label:"Industrial/Machine Setup", code:"13" },
+  { label:"ERP Solutions", code:"14" },
+  { label:"Robotics", code:"15" },
+  { label:"Information Technology", code:"16" },
+  { label:"Defence/Military", code:"17" },
+  { label:"Automotive", code:"18" },
+  { label:"Battery Manufacturer", code:"19" },
+  { label:"Consumer Electronics", code:"20" },
+  { label:"Other", code:"21" },
+  { label:"Government & Alliance", code:"22" },
+  { label:"Freelance/Individual/Personal", code:"23" },
+  { label:"Logistics/Fleet Management", code:"24" },
+  { label:"Fintech", code:"25" },
+  { label:"Aerospace", code:"26" },
+  { label:"BLDC", code:"27" },
+  { label:"Renewables", code:"28" },
+  { label:"Oil & Gas", code:"29" },
+  { label:"Smart Home", code:"30" },
+  { label:"Research", code:"31" },
+  { label:"E-Mobility", code:"32" },
+  { label:"Infrastructure", code:"33" },
+  { label:"Toys and Games", code:"34" },
+  { label:"Incubator", code:"35" },
+  { label:"Security/Surveillance", code:"36" },
+  { label:"Electronics Components Manufacturing", code:"37" },
+  { label:"Drone Tech", code:"38" },
+  { label:"Solar", code:"39" },
+  { label:"IT Hardware", code:"40" },
+  { label:"Display Manufacturers", code:"41" },
+  { label:"Industrial Applications", code:"42" },
 ];
 
 const ORG_SIZES = [
-  { label:"Startup (1-50)", code:"S" },
-  { label:"SME (51-500)", code:"M" },
-  { label:"Enterprise (500+)", code:"L" },
-  { label:"Government", code:"G" },
-  { label:"Individual", code:"I" },
+  { label:"Proto Level — Small Hardware Startups", code:"PL" },
+  { label:"Mid Level — Hardware Startups", code:"ML" },
+  { label:"Enterprise Level — Large Product Companies", code:"EL" },
+  { label:"EMS", code:"EM" },
+  { label:"Individuals/Unknown", code:"UN" },
+  { label:"Government Organisation", code:"GO" },
 ];
 
 const UNIQ = () => Math.random().toString(36).slice(2, 9);
@@ -446,7 +480,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     const [industry, setIndustry] = useState(INDUSTRY_CODES[0].code);
     const [orgSize, setOrgSize] = useState(ORG_SIZES[0].code);
     const [count, setCount] = useState(1);
-    const genId = `eb-${industry.toLowerCase()}-${orgSize.toLowerCase()}-${String(count).padStart(3,"0")}`;
+    const genId = `Eb-${industry}-${orgSize}-${String(count).padStart(3,"0")}`;
     return (
       <div style={S.widget}>
         <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569" }}>Client ID Generator</div>
