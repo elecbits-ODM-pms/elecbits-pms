@@ -299,7 +299,6 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       }
       case "lldChoice": {
         setActiveTab(2);
-        setDoneTab(1);
         await sysMsg("Does a Low-Level Design (LLD) document already exist for this product?", "lldChoice");
         break;
       }
@@ -356,7 +355,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const handleSkip = () => {
     if (currentStep === "lldQuestion") {
       const next = lldIndex + 1;
-      if (next >= 30) { goStep("review"); }
+      if (next >= 30) { goStep("startDate"); }
       else { setLldIndex(next); goStep("lldQuestion"); }
     }
   };
@@ -427,7 +426,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         break;
       case "lldUrl":
         setData(d => ({ ...d, lldUrl: val }));
-        setTimeout(() => goStep("review"), 100);
+        setTimeout(() => goStep("startDate"), 100);
         break;
       case "lldQuestion": {
         setData(d => {
@@ -436,7 +435,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
           return { ...d, lldAnswers: a };
         });
         const next = lldIndex + 1;
-        if (next >= 30) setTimeout(() => goStep("review"), 100);
+        if (next >= 30) setTimeout(() => goStep("startDate"), 100);
         else { setLldIndex(next); setTimeout(() => goStep("lldQuestion"), 100); }
         break;
       }
@@ -527,7 +526,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   /* ─── PROGRESS ─────────────────────────────────────────────────*/
   const totalSteps = 10 + (data.lldExists === false ? 30 : 0);
   const currentQ = (() => {
-    const base = { init:1, clientId:2, contact:3, contactEmail:4, projectName:5, projectTag:6, projectIdGen:7, startDate:8, endDate:9, lldChoice:10 };
+    const base = { init:1, clientId:2, contact:3, contactEmail:4, projectName:5, projectTag:6, projectIdGen:7, lldChoice:8, startDate:9, endDate:10 };
     if (base[currentStep]) return base[currentStep];
     if (currentStep === "lldUrl") return 11;
     if (currentStep === "lldQuestion") return 10 + lldIndex + 1;
@@ -852,7 +851,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
           <button style={{ ...S.primaryBtn, width:"100%", marginTop:8, opacity:isDuplicate?0.5:1 }} disabled={isDuplicate} onClick={() => {
             setData(d=>({...d, projectId: genId}));
             addMsg("user", genId);
-            setTimeout(()=>goStep("startDate"), 100);
+            setTimeout(()=>goStep("lldChoice"), 100);
           }}>Use this Project ID →</button>
         </div>
       </div>
@@ -874,7 +873,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       const key = type === "start" ? "startDate" : "endDate";
       setData(d => ({ ...d, [key]: val }));
       addMsg("user", label + (val ? ` (${val})` : ""));
-      setTimeout(() => goStep(type === "start" ? "endDate" : "lldChoice"), 100);
+      setTimeout(() => goStep(type === "start" ? "endDate" : "review"), 100);
     };
 
     return (
@@ -925,7 +924,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         setData(d => { const a=[...d.lldAnswers]; a[lldIndex]=val; return {...d, lldAnswers:a}; });
         addMsg("user", val);
         const next = lldIndex + 1;
-        if (next >= 30) setTimeout(() => goStep("review"), 100);
+        if (next >= 30) setTimeout(() => goStep("startDate"), 100);
         else { setLldIndex(next); setTimeout(() => goStep("lldQuestion"), 100); }
       }
     };
@@ -936,7 +935,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       addMsg("user", val);
       setMultiChips([]);
       const next = lldIndex + 1;
-      if (next >= 30) setTimeout(() => goStep("review"), 100);
+      if (next >= 30) setTimeout(() => goStep("startDate"), 100);
       else { setLldIndex(next); setTimeout(() => goStep("lldQuestion"), 100); }
     };
 
