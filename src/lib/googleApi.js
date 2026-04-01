@@ -171,6 +171,126 @@ export async function listDocs(maxResults = 50) {
    ═══════════════════════════════════════════════════════════════════ */
 
 /**
+ * Create a new Google Doc with the given title and markdown-ish content.
+ * Converts basic markdown (headings, bold, tables) into Google Docs API requests.
+ * @param {string} title - Document title
+ * @param {string} markdownContent - Content in markdown format
+ * @returns {{ documentId: string, webViewLink: string }}
+ */
+export async function createGoogleDoc(title, markdownContent) {
+  // Step 1: Create an empty doc
+  const createRes = await fetch(DOCS_BASE, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ title }),
+  });
+  if (!createRes.ok) {
+    const err = await createRes.json().catch(() => ({}));
+    throw new Error(`Doc creation failed: ${err.error?.message || createRes.statusText}`);
+  }
+  const doc = await createRes.json();
+  const docId = doc.documentId;
+
+  // Step 2: Build batchUpdate requests from markdown content
+  const requests = markdownToDocRequests(markdownContent);
+
+  if (requests.length > 0) {
+    const updateRes = await fetch(`${DOCS_BASE}/${docId}:batchUpdate`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ requests }),
+    });
+    if (!updateRes.ok) {
+      const err = await updateRes.json().catch(() => ({}));
+      console.warn("Doc content update failed:", err.error?.message || updateRes.statusText);
+      // Doc was created but content insertion failed — still return the doc
+    }
+  }
+
+  return {
+    documentId: docId,
+    webViewLink: `https://docs.google.com/document/d/${docId}/edit`,
+  };
+}
+
+/**
+ * Convert markdown text to Google Docs API batchUpdate requests.
+ * Handles: headings (#, ##, ###), bold (**text**), plain paragraphs.
+ * Inserts text sequentially from index 1.
+ */
+function markdownToDocRequests(markdown) {
+  const lines = markdown.split("\n");
+  const requests = [];
+  let index = 1; // Google Docs starts at index 1
+
+  for (const line of lines) {
+    let text = line;
+    let headingLevel = 0;
+
+    // Detect heading level
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
+    if (headingMatch) {
+      headingLevel = headingMatch[1].length;
+      text = headingMatch[2];
+    }
+
+    // Strip bold markers for plain text insertion (we'll style separately)
+    const plainText = text.replace(/\*\*(.*?)\*\*/g, "$1");
+    const insertText = plainText + "\n";
+
+    // Insert the text
+    requests.push({
+      insertText: {
+        location: { index },
+        text: insertText,
+      },
+    });
+
+    // Apply heading style
+    if (headingLevel > 0 && headingLevel <= 6) {
+      const namedStyle = headingLevel === 1 ? "HEADING_1"
+        : headingLevel === 2 ? "HEADING_2"
+        : headingLevel === 3 ? "HEADING_3"
+        : headingLevel === 4 ? "HEADING_4"
+        : headingLevel === 5 ? "HEADING_5"
+        : "HEADING_6";
+
+      requests.push({
+        updateParagraphStyle: {
+          range: { startIndex: index, endIndex: index + insertText.length },
+          paragraphStyle: { namedStyleType: namedStyle },
+          fields: "namedStyleType",
+        },
+      });
+    }
+
+    // Apply bold to **text** segments
+    let searchStart = index;
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    let match;
+    let offset = 0;
+    while ((match = boldRegex.exec(text)) !== null) {
+      // Calculate position in the plain text (without ** markers)
+      const beforeBold = text.substring(0, match.index).replace(/\*\*(.*?)\*\*/g, "$1");
+      const boldStart = index + beforeBold.length;
+      const boldEnd = boldStart + match[1].length;
+
+      requests.push({
+        updateTextStyle: {
+          range: { startIndex: boldStart, endIndex: boldEnd },
+          textStyle: { bold: true },
+          fields: "bold",
+        },
+      });
+    }
+
+    index += insertText.length;
+  }
+
+  return requests;
+}
+
+/**
  * Read a Google Doc's content as plain text.
  * @param {string} documentId
  * @returns {{ title: string, text: string }}

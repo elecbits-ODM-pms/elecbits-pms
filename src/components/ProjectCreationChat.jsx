@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
 import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo } from "../lib/googleSheets.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
-import { searchDriveFiles, readDoc } from "../lib/googleApi.js";
+import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
+import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
 
 /* ─── LLD QUESTIONS ──────────────────────────────────────────────*/
 const LLD_QUESTIONS = [
@@ -187,6 +188,10 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const [searchInfo, setSearchInfo] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [googleSignedIn, setGoogleSignedIn] = useState(isGoogleSignedIn());
+  const [generatedLLD, setGeneratedLLD] = useState("");
+  const [lldGenerating, setLldGenerating] = useState(false);
+  const [lldError, setLldError] = useState(null);
+  const [creatingDoc, setCreatingDoc] = useState(false);
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
   const stepHistory = useRef([]);
@@ -287,16 +292,6 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         await sysMsg("Let me generate a Project ID for you.", "projectIdWidget");
         break;
       }
-      case "startDate": {
-        setActiveTab(1);
-        await sysMsg("When does this project **start**?", "startDatePicker");
-        break;
-      }
-      case "endDate": {
-        setActiveTab(1);
-        await sysMsg("Target **end / delivery date**?", "endDatePicker");
-        break;
-      }
       case "lldChoice": {
         setActiveTab(2);
         await sysMsg("Does a Low-Level Design (LLD) document already exist for this product?", "lldChoice");
@@ -316,7 +311,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       }
       case "lldQuestion": {
         const q = LLD_QUESTIONS[lldIndex];
-        if (!q) { goStep("review"); return; }
+        if (!q) { goStep("lldGenerating"); return; }
         setActiveTab(q.tab);
         setDoneTab(Math.max(doneTab, q.tab - 1));
         await sysMsg(null, `lldQ_${q.id}`);
@@ -326,9 +321,57 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         }
         break;
       }
-      case "review": {
+      case "lldGenerating": {
+        setActiveTab(9);
+        setDoneTab(9);
+        setLldGenerating(true);
+        setLldError(null);
+        await sysMsg("All 30 questions answered! Now generating your LLD document using AI...", "lldGeneratingWidget");
+        try {
+          const result = await generateLLD({
+            projectName: data.projectName,
+            clientName: data.clientName,
+            answers: data.lldAnswers,
+            projectId: data.projectId,
+          });
+          setGeneratedLLD(result.lldContent);
+          setLldGenerating(false);
+          goStep("lldPreview");
+        } catch (err) {
+          console.error("LLD generation failed, using fallback:", err);
+          const fallback = buildFallbackLLD({
+            projectName: data.projectName,
+            clientName: data.clientName,
+            answers: data.lldAnswers,
+          });
+          setGeneratedLLD(fallback);
+          setLldGenerating(false);
+          setLldError(err.message);
+          goStep("lldPreview");
+        }
+        break;
+      }
+      case "lldPreview": {
+        setActiveTab(9);
+        setDoneTab(9);
+        await sysMsg(null, "lldPreviewWidget");
+        break;
+      }
+      case "startDate": {
         setActiveTab(10);
         setDoneTab(9);
+        await sysMsg("When does this project **start**?", "startDatePicker");
+        break;
+      }
+      case "endDate": {
+        setActiveTab(10);
+        setDoneTab(9);
+        await sysMsg("Target **end / delivery date**?", "endDatePicker");
+        break;
+      }
+      case "review": {
+        setActiveTab(10);
+        setDoneTab(10);
         await sysMsg("Here's a summary of everything we've collected:", "reviewSummary");
         break;
       }
@@ -355,7 +398,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const handleSkip = () => {
     if (currentStep === "lldQuestion") {
       const next = lldIndex + 1;
-      if (next >= 30) { goStep("startDate"); }
+      if (next >= 30) { goStep("lldGenerating"); }
       else { setLldIndex(next); goStep("lldQuestion"); }
     }
   };
@@ -386,6 +429,10 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       setSubmitted(false);
       setSuggestions([]);
       setSearchInfo(null);
+      setGeneratedLLD("");
+      setLldGenerating(false);
+      setLldError(null);
+      setCreatingDoc(false);
       stepHistory.current = [];
     }
   }, [isOpen]);
@@ -402,14 +449,26 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       case "init": {
         setData(d => ({ ...d, clientName: val }));
         setSuggestions([]);
-        // Check if client already exists in the sheet
-        const existing = sheetClients.find(c => c.clientName.toLowerCase() === val.toLowerCase());
-        if (existing) {
-          setData(d => ({ ...d, clientName: existing.clientName, clientId: existing.clientId, contactName: existing.contactName || "", contactEmail: existing.contactEmail || "" }));
-          setTimeout(() => goStep("clientFound"), 100);
-        } else {
-          setTimeout(() => goStep("clientSearch"), 100);
-        }
+        // Live-fetch the sheet to search for the client (ensures up-to-date data)
+        fetchClientsFromSheet().then(clients => {
+          setSheetClients(clients);
+          const existing = clients.find(c => c.clientName.toLowerCase() === val.toLowerCase());
+          if (existing) {
+            setData(d => ({ ...d, clientName: existing.clientName, clientId: existing.clientId, contactName: existing.contactName || "", contactEmail: existing.contactEmail || "" }));
+            setTimeout(() => goStep("clientFound"), 100);
+          } else {
+            setTimeout(() => goStep("clientSearch"), 100);
+          }
+        }).catch(() => {
+          // Fallback to cached data if live fetch fails
+          const existing = sheetClients.find(c => c.clientName.toLowerCase() === val.toLowerCase());
+          if (existing) {
+            setData(d => ({ ...d, clientName: existing.clientName, clientId: existing.clientId, contactName: existing.contactName || "", contactEmail: existing.contactEmail || "" }));
+            setTimeout(() => goStep("clientFound"), 100);
+          } else {
+            setTimeout(() => goStep("clientSearch"), 100);
+          }
+        });
         break;
       }
       case "contact":
@@ -435,7 +494,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
           return { ...d, lldAnswers: a };
         });
         const next = lldIndex + 1;
-        if (next >= 30) setTimeout(() => goStep("startDate"), 100);
+        if (next >= 30) setTimeout(() => goStep("lldGenerating"), 100);
         else { setLldIndex(next); setTimeout(() => goStep("lldQuestion"), 100); }
         break;
       }
@@ -465,7 +524,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       checklist_config: {},
       created_by:       currentUser.id,
       lld_url:          data.lldUrl || null,
-      lld_data:         data.lldExists ? null : { answers: data.lldAnswers, contact: data.contactName, email: data.contactEmail },
+      lld_data:         data.lldExists ? null : { answers: data.lldAnswers, contact: data.contactName, email: data.contactEmail, generatedDocument: generatedLLD || null },
     }).select().single();
 
     if (pe) {
@@ -507,17 +566,17 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       });
     }
 
-    // Write new client to Google Sheet (if it's a new client, not an existing one)
-    const alreadyInSheet = sheetClients.some(c => c.clientId === data.clientId);
-    if (!alreadyInSheet) {
-      appendClientToSheet({
-        clientName: data.clientName,
-        clientId: data.clientId,
-        industry: data._industry || "",
-        size: data._size || "",
-        contactName: data.contactName,
-        contactEmail: data.contactEmail,
-      });
+    // Update the sheet row with contact info if this was a new client (row was added at ID generation time)
+    // For existing clients, no sheet write needed
+    // Note: contact name/email are collected after ID generation, so we update the sheet row here
+    const cachedClient = sheetClients.find(c => c.clientId === data.clientId);
+    if (cachedClient && (!cachedClient.contactName || !cachedClient.contactEmail)) {
+      // Update local cache with contact info collected during the flow
+      setSheetClients(prev => prev.map(c =>
+        c.clientId === data.clientId
+          ? { ...c, contactName: data.contactName || c.contactName, contactEmail: data.contactEmail || c.contactEmail }
+          : c
+      ));
     }
 
     goStep("done");
@@ -526,10 +585,12 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   /* ─── PROGRESS ─────────────────────────────────────────────────*/
   const totalSteps = 10 + (data.lldExists === false ? 30 : 0);
   const currentQ = (() => {
-    const base = { init:1, clientId:2, contact:3, contactEmail:4, projectName:5, projectTag:6, projectIdGen:7, lldChoice:8, startDate:9, endDate:10 };
+    const base = { init:1, clientId:2, contact:3, contactEmail:4, projectName:5, projectTag:6, projectIdGen:7, lldChoice:8 };
     if (base[currentStep]) return base[currentStep];
-    if (currentStep === "lldUrl") return 11;
-    if (currentStep === "lldQuestion") return 10 + lldIndex + 1;
+    if (currentStep === "lldUrl") return 9;
+    if (currentStep === "lldQuestion") return 8 + lldIndex + 1;
+    if (currentStep === "startDate") return totalSteps - 2;
+    if (currentStep === "endDate") return totalSteps - 1;
     if (currentStep === "review" || currentStep === "done") return totalSteps;
     return 0;
   })();
@@ -573,6 +634,20 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
             const sizeLabel = ORG_SIZES.find(x=>x.code===orgSize)?.label || "";
             setData(d=>({...d, clientId: genId, _industry: indLabel, _size: sizeLabel }));
             addMsg("user", genId);
+            // Immediately add new client to Google Sheet
+            appendClientToSheet({
+              clientName: data.clientName,
+              clientId: genId,
+              industry: indLabel,
+              size: sizeLabel,
+              contactName: "",
+              contactEmail: "",
+            }).then(ok => {
+              if (ok) {
+                // Update local cache with the new client
+                setSheetClients(prev => [...prev, { clientName: data.clientName, clientId: genId, industry: indLabel, size: sizeLabel, contactName: "", contactEmail: "" }]);
+              }
+            });
             setTimeout(()=>goStep("contact"), 100);
           }}>Use this Client ID →</button>
         </div>
@@ -924,7 +999,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         setData(d => { const a=[...d.lldAnswers]; a[lldIndex]=val; return {...d, lldAnswers:a}; });
         addMsg("user", val);
         const next = lldIndex + 1;
-        if (next >= 30) setTimeout(() => goStep("startDate"), 100);
+        if (next >= 30) setTimeout(() => goStep("lldGenerating"), 100);
         else { setLldIndex(next); setTimeout(() => goStep("lldQuestion"), 100); }
       }
     };
@@ -935,7 +1010,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       addMsg("user", val);
       setMultiChips([]);
       const next = lldIndex + 1;
-      if (next >= 30) setTimeout(() => goStep("startDate"), 100);
+      if (next >= 30) setTimeout(() => goStep("lldGenerating"), 100);
       else { setLldIndex(next); setTimeout(() => goStep("lldQuestion"), 100); }
     };
 
@@ -964,6 +1039,117 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     );
   };
 
+  const LldGeneratingWidget = () => (
+    <div style={S.widget}>
+      <div style={{ padding:"10px 18px", background:"linear-gradient(135deg, #f0f9ff, #eff6ff)", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#1e40af" }}>
+        AI LLD Generation
+      </div>
+      <div style={{ ...S.widgetInner, textAlign:"center", padding:"32px 18px" }}>
+        <div style={{ fontSize:40, marginBottom:12 }}>🧠</div>
+        <div style={{ fontSize:14, fontWeight:600, color:"#1e293b", marginBottom:8 }}>
+          Generating your LLD document...
+        </div>
+        <div style={{ fontSize:12, color:"#64748b", marginBottom:16 }}>
+          Analyzing your responses and creating a comprehensive Low-Level Design document with component recommendations, architecture decisions, and more.
+        </div>
+        <div style={{ display:"flex", justifyContent:"center", gap:6 }}>
+          <div style={{ ...S.dot(0), background:"#2563eb" }} />
+          <div style={{ ...S.dot(1), background:"#2563eb" }} />
+          <div style={{ ...S.dot(2), background:"#2563eb" }} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const LldPreviewWidget = () => {
+    const handleCreateDoc = async () => {
+      setCreatingDoc(true);
+      try {
+        const docTitle = `LLD — ${data.projectName} — ${data.clientName}`;
+        const { documentId, webViewLink } = await createGoogleDoc(docTitle, generatedLLD);
+        setData(d => ({ ...d, lldUrl: webViewLink }));
+        addMsg("system", `Google Doc created successfully!`);
+        await sysMsg(null, "lldDocCreated");
+        setCreatingDoc(false);
+      } catch (err) {
+        console.error("Failed to create Google Doc:", err);
+        await sysMsg(`Could not create Google Doc: ${err.message}. You can copy the content manually.`);
+        setCreatingDoc(false);
+      }
+    };
+
+    return (
+      <div style={S.widget}>
+        <div style={{ padding:"10px 18px", background:"linear-gradient(135deg, #f0fdf4, #dcfce7)", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#16a34a", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span>LLD Document Generated</span>
+          {lldError && <span style={{ fontSize:10, color:"#d97706", fontWeight:500 }}>Fallback mode — API unavailable</span>}
+        </div>
+        <div style={S.widgetInner}>
+          {/* LLD Preview */}
+          <div style={{
+            maxHeight:300, overflow:"auto", padding:"14px 16px", background:"#f8fafc",
+            borderRadius:8, border:"1px solid #e2e8f0", fontSize:12, lineHeight:1.7,
+            fontFamily:"'IBM Plex Mono', monospace", whiteSpace:"pre-wrap", color:"#334155", marginBottom:14,
+          }}>
+            {generatedLLD.slice(0, 3000)}
+            {generatedLLD.length > 3000 && (
+              <div style={{ marginTop:8, padding:"8px 12px", background:"#eff6ff", borderRadius:6, color:"#2563eb", fontWeight:600, fontSize:11 }}>
+                ... {Math.round(generatedLLD.length / 1000)}k characters total — full content will be saved
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+            {googleSignedIn && (
+              <button
+                style={{ ...S.primaryBtn, display:"flex", alignItems:"center", gap:6, opacity: creatingDoc ? 0.6 : 1 }}
+                onClick={handleCreateDoc}
+                disabled={creatingDoc}
+              >
+                {creatingDoc ? "Creating..." : "📄 Create Google Doc"}
+              </button>
+            )}
+            <button
+              style={S.primaryBtn}
+              onClick={() => {
+                navigator.clipboard.writeText(generatedLLD).then(() => {
+                  addMsg("system", "LLD content copied to clipboard!");
+                }).catch(() => {
+                  addMsg("system", "Could not copy — please select and copy from the preview above.");
+                });
+              }}
+            >
+              📋 Copy to Clipboard
+            </button>
+            <button
+              style={{ ...S.primaryBtn, background:"linear-gradient(135deg, #16a34a, #15803d)" }}
+              onClick={() => goStep("startDate")}
+            >
+              Continue →
+            </button>
+          </div>
+
+          {!googleSignedIn && (
+            <div style={{ marginTop:10, fontSize:11, color:"#64748b" }}>
+              Sign in with Google to save the LLD as a Google Doc automatically.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const LldDocCreated = () => (
+    <div style={{ maxWidth:"85%", padding:"14px 18px", background:"#f0fdf4", borderRadius:12, border:"1px solid #bbf7d0", display:"flex", alignItems:"center", gap:10 }}>
+      <span style={{ fontSize:20 }}>✅</span>
+      <div>
+        <div style={{ fontSize:13, fontWeight:600, color:"#16a34a" }}>Google Doc created!</div>
+        <a href={data.lldUrl} target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#2563eb" }}>{data.lldUrl}</a>
+      </div>
+    </div>
+  );
+
   const ReviewSummary = () => (
     <div style={S.widget}>
       <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569" }}>Project Summary</div>
@@ -984,6 +1170,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         {data.lldExists === false && (
           <div style={{ marginTop:12, padding:"10px 14px", background:"#f0fdf4", borderRadius:8, fontSize:11, color:"#16a34a", fontWeight:600 }}>
             ✓ {data.lldAnswers.filter(a => a).length} of 30 LLD questions answered
+            {generatedLLD && " · LLD document generated"}
           </div>
         )}
         {data.lldUrl && (
@@ -1010,6 +1197,9 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     if (el === "startDatePicker") return <DateChips type="start" />;
     if (el === "endDatePicker") return <DateChips type="end" />;
     if (el === "lldChoice") return <LldChoiceCards />;
+    if (el === "lldGeneratingWidget") return <LldGeneratingWidget />;
+    if (el === "lldPreviewWidget") return <LldPreviewWidget />;
+    if (el === "lldDocCreated") return <LldDocCreated />;
     if (el === "reviewSummary") return <ReviewSummary />;
     if (el.startsWith("lldQ_")) {
       const qId = parseInt(el.split("_")[1]);
