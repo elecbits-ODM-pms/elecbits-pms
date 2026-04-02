@@ -59,17 +59,17 @@ export const canEditCL=(user,clKey)=>{
 export const canApprove=(user)=>user.role==="superadmin"||user.role==="pm";
 
 export const TEAM_SLOTS=[
-  {role:"Senior PM",roleKeys:["sr_pm"],label:"Senior PM"},
-  {role:"PM",roleKeys:["jr_pm","sr_pm"],label:"PM"},
+  {role:"Senior PM",roleKeys:["sr_pm"],label:"Senior PM (Technical Manager)"},
+  {role:"PM",roleKeys:["jr_pm","sr_pm"],label:"PM (Project Manager)"},
   {role:"Sr. Hardware",roleKeys:["sr_hw"],label:"Sr. Hardware Engineer"},
   {role:"Jr. Hardware",roleKeys:["jr_hw"],label:"Jr. Hardware Engineer"},
   {role:"Sr. Firmware",roleKeys:["sr_fw"],label:"Sr. Firmware Engineer"},
   {role:"Jr. Firmware",roleKeys:["jr_fw"],label:"Jr. Firmware Engineer"},
-  {role:"Industrial Design",roleKeys:["ind_design"],label:"Industrial Design"},
-  {role:"Tester",roleKeys:["tester"],label:"Tester"},
+  {role:"Industrial Design",roleKeys:["ind_design"],label:"Industrial Designer"},
+  {role:"Tester",roleKeys:["tester"],label:"Tester / QA"},
   {role:"Soldering & Testing",roleKeys:["soldering"],label:"Soldering & Testing"},
-  {role:"Solution Architects",roleKeys:["sol_arch"],label:"Solution Architects"},
-  {role:"DevOps",roleKeys:["devops"],label:"DevOps"},
+  {role:"Solution Architects",roleKeys:["sol_arch"],label:"Solution Architect"},
+  {role:"DevOps",roleKeys:["devops"],label:"DevOps Engineer"},
   {role:"Supply Chain",roleKeys:["sc"],label:"Supply Chain"},
 ];
 

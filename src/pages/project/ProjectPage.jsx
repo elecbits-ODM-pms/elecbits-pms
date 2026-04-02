@@ -218,7 +218,8 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
               {isAdmin&&(()=>{
                 const currentTM=(project.teamAssignments||[]).find(a=>a.role==="Senior PM");
                 const currentTMUser=currentTM?getUser(currentTM.userId,users):null;
-                const eligibleTMs=(users||[]).filter(u=>u.id!==currentUser.id);
+                const assignedUserIds=(project.teamAssignments||[]).map(a=>a.userId).filter(Boolean);
+                const eligibleTMs=(users||[]).filter(u=>assignedUserIds.includes(u.id));
                 return(
                   <div style={{padding:"10px 14px",background:"var(--coral)08",border:"1px solid var(--coral)25",borderRadius:9,marginBottom:12}}>
                     <div style={{fontSize:12,fontWeight:500,color:"var(--coral)",textTransform:"uppercase",marginBottom:8,letterSpacing:"0.04em"}}>⭐ Technical Manager (TM)</div>
@@ -227,15 +228,16 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                     </div>
                     <Sel defaultValue="" onChange={e=>{
                       if(!e.target.value)return;
-                      const uid=Number(e.target.value);
+                      const selectedUser=eligibleTMs.find(u=>String(u.id)===e.target.value);
+                      if(!selectedUser)return;
                       const newTA=(project.teamAssignments||[]).filter(a=>a.role!=="Senior PM");
-                      newTA.unshift({userId:uid,role:"Senior PM",startDate:project.startDate||"",endDate:project.endDate||""});
+                      newTA.unshift({userId:selectedUser.id,role:"Senior PM",startDate:project.startDate||"",endDate:project.endDate||""});
                       upd({...project,teamAssignments:newTA});
-                      showToast(`${getUser(uid,users)?.name} set as TM ✓`,"var(--coral)");
+                      showToast(`${selectedUser.name} set as TM ✓`,"var(--coral)");
                       e.target.value="";
                     }} style={{width:"100%",fontSize:11,padding:"5px 8px"}}>
                       <option value="">Change TM from assigned resources…</option>
-                      {eligibleTMs.map(u=><option key={u.id} value={u.id}>{u.name} ({u.dept||"PM"})</option>)}
+                      {eligibleTMs.map(u=>{const aRole=(project.teamAssignments||[]).find(a=>a.userId===u.id)?.role||"Team";return <option key={u.id} value={u.id}>{u.name} ({aRole})</option>;})}
                     </Sel>
                   </div>
                 );
@@ -258,7 +260,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                           <div style={{flex:1}}>
                             {editTeam?(
                               <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                                <div style={{fontSize:11,color:"var(--txt3)",fontWeight:500}}>{slot.role}</div>
+                                <div style={{fontSize:11,color:"var(--txt3)",fontWeight:500}}>{slot.label}</div>
                                 <Sel value={a?.userId||""} onChange={e=>updateSlot(slot.role,"userId",e.target.value?Number(e.target.value):"")} style={{padding:"4px 6px",fontSize:11}}>
                                   <option value="">— Select {slot.role} —</option>
                                   {eligible.map(u=><option key={u.id} value={u.id}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label})</option>)}
@@ -271,7 +273,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                             ):(
                               <>
                                 <div style={{fontWeight:700,fontSize:12,color:m?"var(--txt)":"var(--txt3)"}}>{m?m.name:"Unassigned"}</div>
-                                <div style={{fontSize:10,color:"var(--txt3)"}}>{slot.role}</div>
+                                <div style={{fontSize:10,color:"var(--txt3)"}}>{slot.label}</div>
                               </>
                             )}
                           </div>
