@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
-import { fetchClientsFromSheet, searchCompanyInfo, searchClients, ClientDbError, preloadClientDb, isClientDbConfigured, appendNewClientToDb } from "../lib/googleSheets.js";
+import { fetchClientsFromSheet, searchCompanyInfo, appendNewClientToDb } from "../lib/googleSheets.js";
+// Phase 1 of the Supabase sync rollout: read path moved off Google Sheets.
+// Writes still go through googleSheets.js → OAuth Sheets API; Phase 2 will
+// switch them to Supabase inserts and let the cron push back to the sheet.
+import { searchClients, ClientDbError, preloadClientDb, isClientDbConfigured } from "../lib/clientsDb.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
 import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
