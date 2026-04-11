@@ -139,9 +139,17 @@ function cleanEmail(raw) {
 const MAX_MATCHES = 20;
 
 /**
- * Search column B (Organisation Name) for any row containing `query` (case-insensitive).
- * Results are ordered by relevance (exact → prefix → substring) and capped at MAX_MATCHES
- * so the multi-match UI stays usable on broad queries like "ele".
+ * Search column B (Organisation Name) by splitting the query into whitespace-separated
+ * words and matching every row whose name contains EVERY word (case-insensitive substring).
+ *
+ * Examples:
+ *   "schneider"   → "Schneider Electric"
+ *   "tata mot"    → "Tata Motors", "Tata Motor Finance" (both words must be present)
+ *   "bos motor"   → "Boson Motors"
+ *
+ * Results are ordered by relevance (exact → prefix → substring on the full query) and
+ * capped at MAX_MATCHES so the multi-match UI stays usable on broad queries like "ele".
+ *
  * @param {string} query
  * @returns {Promise<Array<{
  *   rowNumber: number, sNo: string, organisationName: string,
@@ -153,6 +161,9 @@ const MAX_MATCHES = 20;
 export async function searchClients(query) {
   const q = (query || "").trim().toLowerCase();
   if (!q) return [];
+  const queryWords = q.split(/\s+/).filter(Boolean);
+  if (queryWords.length === 0) return [];
+
   const rows = await fetchClientCsvRows();
   if (rows.length < 2) return []; // need at least header + one data row
 
@@ -163,8 +174,9 @@ export async function searchClients(query) {
     const orgName = cleanCell(row[1]); // Column B
     if (!orgName) continue;
     const lower = orgName.toLowerCase();
-    if (!lower.includes(q)) continue;
-    // Relevance score: 0 = exact, 1 = prefix, 2 = substring
+    // Multi-word AND: every query word must appear somewhere in the name
+    if (!queryWords.every(w => lower.includes(w))) continue;
+    // Relevance score on the original (joined) query: 0 = exact, 1 = prefix, 2 = substring
     const rank = lower === q ? 0 : lower.startsWith(q) ? 1 : 2;
     matches.push({
       _rank:            rank,
@@ -206,7 +218,10 @@ export function clearClientDbCache() {
 export async function preloadClientDb() {
   try {
     const rows = await fetchClientCsvRows();
-    return { ok: true, rowCount: Math.max(0, rows.length - 1) };
+    const dataRows = rows.slice(1).filter(r => cleanCell(r[1]));
+    const firstFive = dataRows.slice(0, 5).map(r => cleanCell(r[1]));
+    console.log("[clientDb] first 5 client names:", firstFive);
+    return { ok: true, rowCount: dataRows.length };
   } catch (err) {
     return { ok: false, error: err instanceof ClientDbError ? err.message : err.message };
   }
@@ -230,7 +245,9 @@ export function isClientDbConfigured() {
 export async function fetchClientsFromSheet(spreadsheetId) {
   const sheetId = spreadsheetId || SHEET_ID;
   if (!sheetId) {
-    console.warn("[gsheet] No spreadsheet ID configured — skipping sheet read");
+    // Legacy OAuth-protected sheet path. The new public client database
+    // (searchClients/preloadClientDb) handles all client lookups now, so
+    // an unconfigured legacy sheet is expected and harmless — silently no-op.
     return [];
   }
 
