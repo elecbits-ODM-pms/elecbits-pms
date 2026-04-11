@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
-import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo } from "../lib/googleSheets.js";
+import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo, searchClients } from "../lib/googleSheets.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
 import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
@@ -185,6 +185,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const [submitted, setSubmitted] = useState(false);
   const [sheetClients, setSheetClients] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [dbMatches, setDbMatches] = useState([]);
   const [searchInfo, setSearchInfo] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [googleSignedIn, setGoogleSignedIn] = useState(isGoogleSignedIn());
@@ -237,6 +238,24 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
           await sysMsg("What is the **client / company name**?" + (sheetClients.length > 0 ? " (Start typing — I'll check if they're already in our system)" : ""));
           setInputDisabled(false);
           setInputPlaceholder("e.g. Acme Corp");
+        }
+        break;
+      }
+      case "clientDbSearch": {
+        setActiveTab(0);
+        setSearchLoading(true);
+        await sysMsg("Let me search our client database...");
+        const matches = await searchClients(data.clientName);
+        setDbMatches(matches);
+        setSearchLoading(false);
+        if (matches.length === 1) {
+          // Auto-fill the canonical name from the sheet
+          setData(d => ({ ...d, clientName: matches[0].organisationName }));
+          await sysMsg(null, "clientDbSingle");
+        } else if (matches.length > 1) {
+          await sysMsg(`Found ${matches.length} possible matches in our database:`, "clientDbMulti");
+        } else {
+          await sysMsg(null, "clientDbNotFound");
         }
         break;
       }
@@ -428,6 +447,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       setDoneTab(-1);
       setSubmitted(false);
       setSuggestions([]);
+      setDbMatches([]);
       setSearchInfo(null);
       setGeneratedLLD("");
       setLldGenerating(false);
@@ -449,26 +469,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       case "init": {
         setData(d => ({ ...d, clientName: val }));
         setSuggestions([]);
-        // Live-fetch the sheet to search for the client (ensures up-to-date data)
-        fetchClientsFromSheet().then(clients => {
-          setSheetClients(clients);
-          const existing = clients.find(c => c.clientName.toLowerCase() === val.toLowerCase());
-          if (existing) {
-            setData(d => ({ ...d, clientName: existing.clientName, clientId: existing.clientId, contactName: existing.contactName || "", contactEmail: existing.contactEmail || "" }));
-            setTimeout(() => goStep("clientFound"), 100);
-          } else {
-            setTimeout(() => goStep("clientSearch"), 100);
-          }
-        }).catch(() => {
-          // Fallback to cached data if live fetch fails
-          const existing = sheetClients.find(c => c.clientName.toLowerCase() === val.toLowerCase());
-          if (existing) {
-            setData(d => ({ ...d, clientName: existing.clientName, clientId: existing.clientId, contactName: existing.contactName || "", contactEmail: existing.contactEmail || "" }));
-            setTimeout(() => goStep("clientFound"), 100);
-          } else {
-            setTimeout(() => goStep("clientSearch"), 100);
-          }
-        });
+        setTimeout(() => goStep("clientDbSearch"), 100);
         break;
       }
       case "contact":
@@ -825,6 +826,111 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     );
   };
 
+  // Auto-fill data from a matched DB client and skip past already-known fields
+  const acceptDbClient = (c) => {
+    setData(d => ({
+      ...d,
+      clientName:   c.organisationName,
+      clientId:     c.clientId     || d.clientId,
+      contactName:  c.contactName  || d.contactName,
+      contactEmail: c.contactEmail || c.contactPhone || d.contactEmail,
+    }));
+    addMsg("user", `Use ${c.organisationName}`);
+    const nextStep = !c.clientId                          ? "clientId"
+                   : !c.contactName                       ? "contact"
+                   : !(c.contactEmail || c.contactPhone)  ? "contactEmail"
+                   : "projectName";
+    setTimeout(() => goStep(nextStep), 100);
+  };
+
+  const ClientDbSingleCard = () => {
+    const c = dbMatches[0];
+    if (!c) return null;
+    const hasMeta = c.industry || c.orgSize || c.employees || c.funding || c.dueDiligence;
+    return (
+      <div style={S.widget}>
+        <div style={{ padding:"10px 18px", background:"#f0fdf4", borderBottom:"1px solid #bbf7d0", fontSize:12, fontWeight:600, color:"#16a34a", display:"flex", alignItems:"center", gap:6 }}>
+          <span>✓</span> Match found in client database
+        </div>
+        <div style={S.widgetInner}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:4 }}>
+            <div style={{ fontSize:15, fontWeight:700, color:"#1e293b" }}>{c.organisationName}</div>
+            {c.clientId && <span style={{ fontSize:11, fontFamily:"'IBM Plex Mono',monospace", fontWeight:700, color:"#2563eb" }}>{c.clientId}</span>}
+          </div>
+          <div style={{ fontSize:11, color:"#64748b", marginBottom:12 }}>Sheet row {c.rowNumber}</div>
+          {(c.contactName || c.contactEmail || c.contactPhone) && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:4, fontSize:12, marginBottom:10, paddingTop:10, borderTop:"1px solid #f1f5f9" }}>
+              {c.contactName  && <div><span style={{ color:"#64748b" }}>Contact:</span> {c.contactName}{c.designation ? ` — ${c.designation}` : ""}</div>}
+              {c.contactEmail && <div><span style={{ color:"#64748b" }}>Email:</span> {c.contactEmail}</div>}
+              {c.contactPhone && <div><span style={{ color:"#64748b" }}>Phone:</span> {c.contactPhone}</div>}
+            </div>
+          )}
+          {hasMeta && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:4, fontSize:12, marginBottom:14, paddingTop:10, borderTop:"1px solid #f1f5f9" }}>
+              {c.industry     && <div><span style={{ color:"#64748b" }}>Industry:</span> {c.industry}</div>}
+              {c.orgSize      && <div><span style={{ color:"#64748b" }}>Org size:</span> {c.orgSize}</div>}
+              {c.employees    && <div><span style={{ color:"#64748b" }}>Employees:</span> {c.employees}</div>}
+              {c.funding      && <div><span style={{ color:"#64748b" }}>Funding:</span> {c.funding}</div>}
+              {c.dueDiligence && <div><span style={{ color:"#64748b" }}>Due diligence:</span> {c.dueDiligence}</div>}
+            </div>
+          )}
+          <div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.primaryBtn, flex:1 }} onClick={() => acceptDbClient(c)}>✓ Use this client</button>
+            <button style={S.secondaryBtn} onClick={() => {
+              addMsg("user", "Different company");
+              setTimeout(() => goStep("init"), 100);
+            }}>✗ Different company</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ClientDbMultiChips = () => (
+    <div style={S.widget}>
+      <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569", display:"flex", alignItems:"center", gap:6 }}>
+        <span>🔎</span> Pick the right one
+      </div>
+      <div style={S.widgetInner}>
+        <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:12 }}>
+          {dbMatches.map((c, i) => (
+            <button key={i} style={{ ...S.chip(false), textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px" }} onClick={() => acceptDbClient(c)}>
+              <span style={{ fontWeight:600 }}>{c.organisationName}</span>
+              {c.clientId && <span style={{ fontSize:10, fontFamily:"'IBM Plex Mono',monospace", color:"#2563eb", fontWeight:700, marginLeft:8 }}>{c.clientId}</span>}
+            </button>
+          ))}
+        </div>
+        <button style={{ ...S.link, color:"#2563eb" }} onClick={() => {
+          addMsg("user","None of these");
+          setTimeout(() => goStep("init"), 100);
+        }}>None of these — re-enter name</button>
+      </div>
+    </div>
+  );
+
+  const ClientDbNotFound = () => (
+    <div style={S.widget}>
+      <div style={{ padding:"10px 18px", background:"#fef3c7", borderBottom:"1px solid #fde68a", fontSize:12, fontWeight:600, color:"#92400e", display:"flex", alignItems:"center", gap:6 }}>
+        <span>!</span> Not found in our client database
+      </div>
+      <div style={S.widgetInner}>
+        <div style={{ fontSize:13, color:"#475569", marginBottom:14, lineHeight:1.5 }}>
+          <strong>{data.clientName}</strong> isn't in the sheet yet. Proceed as a new client?
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button style={{ ...S.primaryBtn, flex:1 }} onClick={() => {
+            addMsg("user", "Yes, new client");
+            setTimeout(() => goStep("clientSearch"), 100);
+          }}>Yes, new client →</button>
+          <button style={S.secondaryBtn} onClick={() => {
+            addMsg("user", "No, re-enter");
+            setTimeout(() => goStep("init"), 100);
+          }}>No, re-enter</button>
+        </div>
+      </div>
+    </div>
+  );
+
   const ClientSearchResult = () => {
     if (searchLoading) {
       return (
@@ -1014,6 +1120,11 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       else { setLldIndex(next); setTimeout(() => goStep("lldQuestion"), 100); }
     };
 
+    const generateNow = () => {
+      addMsg("user", "⚡ Generate now (skip remaining questions)");
+      setTimeout(() => goStep("lldGenerating"), 100);
+    };
+
     return (
       <div style={{ maxWidth:"85%", display:"flex", flexDirection:"column", gap:8 }}>
         <div style={{ display:"flex", gap:8 }}>
@@ -1035,6 +1146,19 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
             )}
           </div>
         )}
+        <div style={{ marginLeft:36, display:"flex", gap:8, alignItems:"center" }}>
+          <button
+            onClick={generateNow}
+            style={{
+              fontSize:11, fontWeight:600, padding:"6px 12px", borderRadius:6,
+              border:"1px solid #2563eb", background:"#fff", color:"#2563eb", cursor:"pointer",
+            }}
+            title="Skip remaining questions and generate the LLD now with whatever you've answered so far"
+          >
+            ⚡ Generate now (skip remaining)
+          </button>
+          <span style={{ fontSize:10, color:"#94a3b8" }}>Unanswered questions will be marked "Not specified"</span>
+        </div>
       </div>
     );
   };
@@ -1191,6 +1315,9 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     if (el === "driveFilePicker") return <DriveFilePicker />;
     if (el === "clientIdWidget") return <ClientIdWidget />;
     if (el === "clientFoundCard") return <ClientFoundCard />;
+    if (el === "clientDbSingle") return <ClientDbSingleCard />;
+    if (el === "clientDbMulti") return <ClientDbMultiChips />;
+    if (el === "clientDbNotFound") return <ClientDbNotFound />;
     if (el === "clientSearchResult") return <ClientSearchResult />;
     if (el === "projectTagPicker") return <ProjectTagPicker />;
     if (el === "projectIdWidget") return <ProjectIdWidget />;

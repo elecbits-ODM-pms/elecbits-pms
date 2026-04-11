@@ -17,6 +17,172 @@ import { readSheetAsObjects, appendToSheet, getSpreadsheetInfo } from "./googleA
 const SHEET_ID = import.meta.env.VITE_GSHEET_ID || "";
 
 /* ═══════════════════════════════════════════════════════════════════
+   CLIENT DATABASE SEARCH — public CSV (no auth required)
+   ───────────────────────────────────────────────────────────────────
+   Reads the "Client Data and IDs" tab of the spreadsheet specified by
+   VITE_CLIENT_SHEET_ID via the gviz CSV endpoint. The sheet must be
+   shared so anyone with the link can view, OR Published to the web.
+
+   Sheet schema (1-indexed columns as they appear in the actual sheet):
+     A  S. no.
+     B  Organisation Name           (the searchable field)
+     C  Category/Industry
+     D  Client category/org size
+     E  Client ID
+     F  Client Folder
+     G  Point of Contact
+     H  Designation
+     I  Contact Number
+     J  Email ID
+     K  Company Due Diligence
+     L  Number of employees
+     M  Funding Information
+   ═══════════════════════════════════════════════════════════════════ */
+
+const CLIENT_SHEET_ID = import.meta.env.VITE_CLIENT_SHEET_ID || "";
+const CLIENT_SHEET_NAME = "Client Data and IDs";
+
+let _clientCsvCache = null;
+let _clientCsvPromise = null;
+
+/** Minimal RFC-4180-ish CSV parser (handles quoted fields, escaped quotes, CRLF) */
+function parseCsv(text) {
+  const rows = [];
+  let cur = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { cur.push(field); field = ""; }
+      else if (c === '\n') { cur.push(field); rows.push(cur); cur = []; field = ""; }
+      else if (c === '\r') { /* skip CR */ }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || cur.length > 0) { cur.push(field); rows.push(cur); }
+  return rows;
+}
+
+/** Fetch & cache the client CSV. Returns [] on failure (logs the reason). */
+async function fetchClientCsvRows(force = false) {
+  if (!force && _clientCsvCache) return _clientCsvCache;
+  if (!force && _clientCsvPromise) return _clientCsvPromise;
+  if (!CLIENT_SHEET_ID) {
+    console.warn("[clientDb] VITE_CLIENT_SHEET_ID is not set — cannot search client database");
+    return [];
+  }
+  const url = `https://docs.google.com/spreadsheets/d/${CLIENT_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CLIENT_SHEET_NAME)}`;
+  _clientCsvPromise = (async () => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.error(
+          `[clientDb] CSV fetch failed: HTTP ${res.status}. ` +
+          `The sheet must be shared as "Anyone with the link → Viewer" OR ` +
+          `Published to web (File → Share → Publish to web → CSV).`
+        );
+        return [];
+      }
+      const text = await res.text();
+      // If Google returned an HTML error page instead of CSV, bail out cleanly
+      if (text.trimStart().startsWith("<")) {
+        console.error("[clientDb] Sheet returned HTML instead of CSV — likely not publicly accessible");
+        return [];
+      }
+      const rows = parseCsv(text);
+      _clientCsvCache = rows;
+      console.log(`[clientDb] Loaded ${rows.length} rows from client database`);
+      return rows;
+    } catch (err) {
+      console.error("[clientDb] CSV fetch error:", err);
+      return [];
+    } finally {
+      _clientCsvPromise = null;
+    }
+  })();
+  return _clientCsvPromise;
+}
+
+/** Collapse internal whitespace/newlines so multi-line cells render in a single line. */
+function cleanCell(raw) {
+  return (raw || "").replace(/\s*[\r\n]+\s*/g, " ").replace(/\s{2,}/g, " ").trim();
+}
+
+/** Extract a single email address from a messy cell that may contain labels, newlines, or multiple values. */
+function cleanEmail(raw) {
+  if (!raw) return "";
+  const match = raw.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
+  return match ? match[0] : cleanCell(raw);
+}
+
+const MAX_MATCHES = 20;
+
+/**
+ * Search column B (Organisation Name) for any row containing `query` (case-insensitive).
+ * Results are ordered by relevance (exact → prefix → substring) and capped at MAX_MATCHES
+ * so the multi-match UI stays usable on broad queries like "ele".
+ * @param {string} query
+ * @returns {Promise<Array<{
+ *   rowNumber: number, sNo: string, organisationName: string,
+ *   industry: string, orgSize: string, clientId: string, clientFolder: string,
+ *   contactName: string, designation: string, contactPhone: string, contactEmail: string,
+ *   dueDiligence: string, employees: string, funding: string
+ * }>>}
+ */
+export async function searchClients(query) {
+  const q = (query || "").trim().toLowerCase();
+  if (!q) return [];
+  const rows = await fetchClientCsvRows();
+  if (rows.length < 2) return []; // need at least header + one data row
+
+  const matches = [];
+  // Row 0 is the header row; data starts at row 1.
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const orgName = cleanCell(row[1]); // Column B
+    if (!orgName) continue;
+    const lower = orgName.toLowerCase();
+    if (!lower.includes(q)) continue;
+    // Relevance score: 0 = exact, 1 = prefix, 2 = substring
+    const rank = lower === q ? 0 : lower.startsWith(q) ? 1 : 2;
+    matches.push({
+      _rank:            rank,
+      rowNumber:        i + 1,
+      sNo:              cleanCell(row[0]),
+      organisationName: orgName,
+      industry:         cleanCell(row[2]),
+      orgSize:          cleanCell(row[3]),
+      clientId:         cleanCell(row[4]),
+      clientFolder:     cleanCell(row[5]),
+      contactName:      cleanCell(row[6]),
+      designation:      cleanCell(row[7]),
+      contactPhone:     cleanCell(row[8]),
+      contactEmail:     cleanEmail(row[9]),
+      dueDiligence:     cleanCell(row[10]),
+      employees:        cleanCell(row[11]),
+      funding:          cleanCell(row[12]),
+    });
+  }
+  matches.sort((a, b) => a._rank - b._rank || a.organisationName.localeCompare(b.organisationName));
+  return matches.slice(0, MAX_MATCHES).map(({ _rank, ...rest }) => rest);
+}
+
+/** Force the next searchClients call to refetch the CSV (e.g. after the sheet was updated). */
+export function clearClientDbCache() {
+  _clientCsvCache = null;
+  _clientCsvPromise = null;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    READ CLIENTS — uses Sheets API v4 when signed in, gviz fallback
    ═══════════════════════════════════════════════════════════════════ */
 
