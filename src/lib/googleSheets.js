@@ -37,16 +37,39 @@ export async function fetchClientsFromSheet(spreadsheetId) {
   if (isGoogleSignedIn()) {
     try {
       const rows = await readSheetAsObjects(sheetId);
-      // Map header names to our standard field names
-      return rows.map(row => ({
-        clientName:   row["Client Name"] || row["client_name"] || row["Name"] || "",
-        clientId:     row["Client ID"] || row["client_id"] || row["ID"] || "",
-        industry:     row["Industry"] || row["industry"] || "",
-        size:         row["Size"] || row["size"] || "",
-        contactName:  row["Contact Name"] || row["contact_name"] || row["Contact"] || "",
-        contactEmail: row["Contact Email"] || row["contact_email"] || row["Email"] || "",
-        dateAdded:    row["Date Added"] || row["date_added"] || "",
-      })).filter(r => r.clientName);
+      console.log(`[gsheet] read ${rows.length} rows from spreadsheet ${sheetId}`);
+      if (rows.length === 0) {
+        console.warn("[gsheet] sheet returned 0 rows — check the first tab actually has data with a header row");
+        return [];
+      }
+      // Build a case/space-insensitive header lookup so we accept many naming variants
+      const pickField = (row, ...aliases) => {
+        const norm = (s) => (s || "").toString().toLowerCase().replace(/[\s_-]+/g, "");
+        const map = {};
+        Object.keys(row).forEach(k => { map[norm(k)] = row[k]; });
+        for (const a of aliases) {
+          const v = map[norm(a)];
+          if (v) return v;
+        }
+        return "";
+      };
+      const mapped = rows.map(row => ({
+        clientName:   pickField(row, "Client Name", "ClientName", "Company", "Company Name", "Name"),
+        clientId:     pickField(row, "Client ID", "ClientID", "ID", "Code"),
+        industry:     pickField(row, "Industry", "Sector"),
+        size:         pickField(row, "Size", "Company Size"),
+        contactName:  pickField(row, "Contact Name", "Contact", "Primary Contact", "POC"),
+        contactEmail: pickField(row, "Contact Email", "Email", "E-mail"),
+        dateAdded:    pickField(row, "Date Added", "Created", "Created At"),
+      }));
+      const filtered = mapped.filter(r => r.clientName);
+      if (filtered.length === 0 && mapped.length > 0) {
+        console.warn(
+          "[gsheet] mapped 0 clients — header names did not match any known aliases. Headers in sheet:",
+          Object.keys(rows[0])
+        );
+      }
+      return filtered;
     } catch (err) {
       console.error("[gsheet] API read error, falling back to gviz:", err);
       return fetchClientsViaGviz(sheetId);

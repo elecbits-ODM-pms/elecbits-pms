@@ -23,17 +23,27 @@ function headers() {
    ═══════════════════════════════════════════════════════════════════ */
 
 /**
+ * Get the title of the first tab in a spreadsheet.
+ * Used so we don't have to assume "Sheet1" — many users rename their first tab.
+ */
+export async function getFirstSheetName(spreadsheetId) {
+  const info = await getSpreadsheetInfo(spreadsheetId);
+  return info.sheets?.[0]?.properties?.title || "Sheet1";
+}
+
+/**
  * Read all rows from a sheet tab.
  * @param {string} spreadsheetId - The spreadsheet ID from the URL
- * @param {string} range - e.g. "Sheet1" or "Clients!A:G"
+ * @param {string} range - e.g. "Sheet1" or "Clients!A:G". If omitted, the first tab is auto-detected.
  * @returns {string[][]} Array of rows (each row is array of cell values)
  */
-export async function readSheet(spreadsheetId, range = "Sheet1") {
-  const url = `${SHEETS_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`;
+export async function readSheet(spreadsheetId, range) {
+  const effectiveRange = range || (await getFirstSheetName(spreadsheetId));
+  const url = `${SHEETS_BASE}/${spreadsheetId}/values/${encodeURIComponent(effectiveRange)}`;
   const res = await fetch(url, { headers: headers() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(`Sheets read failed: ${err.error?.message || res.statusText}`);
+    throw new Error(`Sheets read failed (range="${effectiveRange}"): ${err.error?.message || res.statusText}`);
   }
   const data = await res.json();
   return data.values || [];
@@ -45,13 +55,13 @@ export async function readSheet(spreadsheetId, range = "Sheet1") {
  * @param {string} range
  * @returns {Object[]}
  */
-export async function readSheetAsObjects(spreadsheetId, range = "Sheet1") {
+export async function readSheetAsObjects(spreadsheetId, range) {
   const rows = await readSheet(spreadsheetId, range);
   if (rows.length < 2) return [];
-  const headers = rows[0].map(h => h.trim());
+  const headerRow = rows[0].map(h => (h || "").toString().trim());
   return rows.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] || ""; });
+    headerRow.forEach((h, i) => { obj[h] = row[i] || ""; });
     return obj;
   }).filter(obj => Object.values(obj).some(v => v)); // skip fully empty rows
 }
@@ -62,8 +72,9 @@ export async function readSheetAsObjects(spreadsheetId, range = "Sheet1") {
  * @param {string[][]} rows - Array of rows to append
  * @param {string} range - Tab name, e.g. "Sheet1" or "Clients"
  */
-export async function appendToSheet(spreadsheetId, rows, range = "Sheet1") {
-  const url = `${SHEETS_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+export async function appendToSheet(spreadsheetId, rows, range) {
+  const effectiveRange = range || (await getFirstSheetName(spreadsheetId));
+  const url = `${SHEETS_BASE}/${spreadsheetId}/values/${encodeURIComponent(effectiveRange)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
   const res = await fetch(url, {
     method: "POST",
     headers: headers(),
