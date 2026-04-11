@@ -39,7 +39,12 @@ const SHEET_ID = import.meta.env.VITE_GSHEET_ID || "";
      M  Funding Information
    ═══════════════════════════════════════════════════════════════════ */
 
-const CLIENT_SHEET_ID = import.meta.env.VITE_CLIENT_SHEET_ID || "";
+// Hardcoded fallback so the deployed bundle always works without depending on
+// platform env vars. The sheet is shared as "Anyone with the link → Viewer",
+// so the ID is not a secret (it's effectively a public URL). Override locally
+// by setting VITE_CLIENT_SHEET_ID in .env.local if you ever need to point at
+// a different sheet for development.
+const CLIENT_SHEET_ID = import.meta.env.VITE_CLIENT_SHEET_ID || "1VmZ1qKn5o7P5hefjngQoYcnahQUwI7Y3ejdgvGCB2bs";
 const CLIENT_SHEET_NAME = "Client Data and IDs";
 
 let _clientCsvCache = null;
