@@ -193,6 +193,25 @@ export function clearClientDbCache() {
   _clientCsvPromise = null;
 }
 
+/**
+ * Kick off the CSV fetch ahead of time (e.g. when the chat opens) so the first
+ * searchClients call is instant and connection errors surface immediately.
+ * Resolves to { ok: true, rowCount } on success or { ok: false, error } on failure.
+ */
+export async function preloadClientDb() {
+  try {
+    const rows = await fetchClientCsvRows();
+    return { ok: true, rowCount: Math.max(0, rows.length - 1) };
+  } catch (err) {
+    return { ok: false, error: err instanceof ClientDbError ? err.message : err.message };
+  }
+}
+
+/** True if VITE_CLIENT_SHEET_ID is set. Useful for status badges. */
+export function isClientDbConfigured() {
+  return !!CLIENT_SHEET_ID;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    READ CLIENTS — uses Sheets API v4 when signed in, gviz fallback
    ═══════════════════════════════════════════════════════════════════ */

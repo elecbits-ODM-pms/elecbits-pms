@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
-import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo, searchClients, ClientDbError } from "../lib/googleSheets.js";
+import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo, searchClients, ClientDbError, preloadClientDb, isClientDbConfigured } from "../lib/googleSheets.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
 import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
@@ -187,6 +187,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const [suggestions, setSuggestions] = useState([]);
   const [dbMatches, setDbMatches] = useState([]);
   const [dbError, setDbError] = useState(null);
+  const [dbStatus, setDbStatus] = useState({ state: "idle", rowCount: 0, error: null }); // idle | loading | ready | error
   const [searchInfo, setSearchInfo] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [googleSignedIn, setGoogleSignedIn] = useState(isGoogleSignedIn());
@@ -435,6 +436,23 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   useEffect(() => {
     if (isOpen && !started.current) {
       started.current = true;
+      // Preload the public client database (so first search is instant
+      // and any connection failure is visible before the user types)
+      if (isClientDbConfigured()) {
+        setDbStatus({ state: "loading", rowCount: 0, error: null });
+        preloadClientDb().then(res => {
+          if (res.ok) {
+            console.log(`[clientDb] preload OK — ${res.rowCount} clients ready`);
+            setDbStatus({ state: "ready", rowCount: res.rowCount, error: null });
+          } else {
+            console.error(`[clientDb] preload FAILED — ${res.error}`);
+            setDbStatus({ state: "error", rowCount: 0, error: res.error });
+          }
+        });
+      } else {
+        console.error("[clientDb] VITE_CLIENT_SHEET_ID is not set in import.meta.env — restart Vite after editing .env.local");
+        setDbStatus({ state: "error", rowCount: 0, error: "VITE_CLIENT_SHEET_ID is not set — restart the dev server" });
+      }
       // Fetch existing clients from Google Sheet
       fetchClientsFromSheet().then(clients => {
         setSheetClients(clients);
@@ -457,6 +475,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       setSuggestions([]);
       setDbMatches([]);
       setDbError(null);
+      setDbStatus({ state: "idle", rowCount: 0, error: null });
       setSearchInfo(null);
       setGeneratedLLD("");
       setLldGenerating(false);
@@ -1419,6 +1438,19 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
                   Google Drive
                 </span>
               )}
+              {dbStatus.state !== "idle" && (() => {
+                const cfg = dbStatus.state === "ready"
+                  ? { bg:"rgba(34,197,94,0.2)", fg:"#bbf7d0", dot:"#4ade80", text:`Client DB · ${dbStatus.rowCount}` }
+                  : dbStatus.state === "loading"
+                  ? { bg:"rgba(250,204,21,0.2)", fg:"#fef08a", dot:"#facc15", text:"Client DB · loading" }
+                  : { bg:"rgba(239,68,68,0.2)", fg:"#fecaca", dot:"#f87171", text:"Client DB · error" };
+                return (
+                  <span title={dbStatus.error || ""} style={{ ...S.badge, background:cfg.bg, color:cfg.fg, fontSize:10, display:"flex", alignItems:"center", gap:4 }}>
+                    <span style={{ width:6, height:6, borderRadius:"50%", background:cfg.dot, display:"inline-block" }} />
+                    {cfg.text}
+                  </span>
+                );
+              })()}
               <span style={S.badge}>Q {currentQ} of {totalSteps}</span>
               <button style={S.closeBtn} onClick={onClose}>✕</button>
             </div>
