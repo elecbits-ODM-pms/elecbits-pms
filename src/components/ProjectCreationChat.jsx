@@ -198,6 +198,10 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
   const stepHistory = useRef([]);
+  // Holds the latest typed client name synchronously, so the clientDbSearch
+  // step always searches the value the user just typed — not the value from
+  // the previous render that's still closed over by the goStep callback.
+  const searchQueryRef = useRef("");
 
   const scrollBottom = useCallback(() => {
     setTimeout(() => { if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; }, 50);
@@ -246,9 +250,15 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       case "clientDbSearch": {
         setActiveTab(0);
         setSearchLoading(true);
-        await sysMsg("Let me search our client database...");
+        // Read from the ref, not data.clientName — the ref is updated
+        // synchronously in handleSend, while data.clientName lags one render
+        // behind because of React's batched setState semantics.
+        const query = searchQueryRef.current || data.clientName;
+        await sysMsg(`Let me search our client database for "${query}"...`);
+        console.log(`[clientDb] searching for: "${query}"`);
         try {
-          const matches = await searchClients(data.clientName);
+          const matches = await searchClients(query);
+          console.log(`[clientDb] "${query}" → ${matches.length} match(es)`, matches.map(m => m.organisationName));
           setDbMatches(matches);
           setSearchLoading(false);
           if (matches.length === 1) {
@@ -476,6 +486,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       setDbMatches([]);
       setDbError(null);
       setDbStatus({ state: "idle", rowCount: 0, error: null });
+      searchQueryRef.current = "";
       setSearchInfo(null);
       setGeneratedLLD("");
       setLldGenerating(false);
@@ -495,6 +506,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
 
     switch (currentStep) {
       case "init": {
+        searchQueryRef.current = val; // synchronous — bypasses stale React closure in goStep
         setData(d => ({ ...d, clientName: val }));
         setSuggestions([]);
         setTimeout(() => goStep("clientDbSearch"), 100);
