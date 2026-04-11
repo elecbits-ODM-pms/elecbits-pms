@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
-import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo, searchClients } from "../lib/googleSheets.js";
+import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo, searchClients, ClientDbError } from "../lib/googleSheets.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
 import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
@@ -186,6 +186,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const [sheetClients, setSheetClients] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [dbMatches, setDbMatches] = useState([]);
+  const [dbError, setDbError] = useState(null);
   const [searchInfo, setSearchInfo] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [googleSignedIn, setGoogleSignedIn] = useState(isGoogleSignedIn());
@@ -245,17 +246,24 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         setActiveTab(0);
         setSearchLoading(true);
         await sysMsg("Let me search our client database...");
-        const matches = await searchClients(data.clientName);
-        setDbMatches(matches);
-        setSearchLoading(false);
-        if (matches.length === 1) {
-          // Auto-fill the canonical name from the sheet
-          setData(d => ({ ...d, clientName: matches[0].organisationName }));
-          await sysMsg(null, "clientDbSingle");
-        } else if (matches.length > 1) {
-          await sysMsg(`Found ${matches.length} possible matches in our database:`, "clientDbMulti");
-        } else {
-          await sysMsg(null, "clientDbNotFound");
+        try {
+          const matches = await searchClients(data.clientName);
+          setDbMatches(matches);
+          setSearchLoading(false);
+          if (matches.length === 1) {
+            // Auto-fill the canonical name from the sheet
+            setData(d => ({ ...d, clientName: matches[0].organisationName }));
+            await sysMsg(null, "clientDbSingle");
+          } else if (matches.length > 1) {
+            await sysMsg(`Found ${matches.length} possible matches in our database:`, "clientDbMulti");
+          } else {
+            await sysMsg(null, "clientDbNotFound");
+          }
+        } catch (err) {
+          setSearchLoading(false);
+          const msg = err instanceof ClientDbError ? err.message : `Unexpected error: ${err.message}`;
+          setDbError(msg);
+          await sysMsg(null, "clientDbErrorWidget");
         }
         break;
       }
@@ -448,6 +456,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       setSubmitted(false);
       setSuggestions([]);
       setDbMatches([]);
+      setDbError(null);
       setSearchInfo(null);
       setGeneratedLLD("");
       setLldGenerating(false);
@@ -908,6 +917,34 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     </div>
   );
 
+  const ClientDbErrorWidget = () => (
+    <div style={S.widget}>
+      <div style={{ padding:"10px 18px", background:"#fee2e2", borderBottom:"1px solid #fecaca", fontSize:12, fontWeight:600, color:"#b91c1c", display:"flex", alignItems:"center", gap:6 }}>
+        <span>⚠</span> Couldn't reach client database
+      </div>
+      <div style={S.widgetInner}>
+        <div style={{ fontSize:13, color:"#475569", marginBottom:6, lineHeight:1.5 }}>
+          {dbError || "Unknown error"}
+        </div>
+        <div style={{ fontSize:11, color:"#94a3b8", marginBottom:14, lineHeight:1.5 }}>
+          Open the browser console for the full <code style={{ background:"#f1f5f9", padding:"1px 4px", borderRadius:3 }}>[clientDb]</code> log line. Most common cause: the dev server wasn't restarted after editing <code style={{ background:"#f1f5f9", padding:"1px 4px", borderRadius:3 }}>.env.local</code>.
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button style={{ ...S.primaryBtn, flex:1 }} onClick={() => {
+            addMsg("user", "Retry");
+            setDbError(null);
+            setTimeout(() => goStep("clientDbSearch"), 100);
+          }}>Retry search</button>
+          <button style={S.secondaryBtn} onClick={() => {
+            addMsg("user", "Continue without database");
+            setDbError(null);
+            setTimeout(() => goStep("clientSearch"), 100);
+          }}>Continue anyway</button>
+        </div>
+      </div>
+    </div>
+  );
+
   const ClientDbNotFound = () => (
     <div style={S.widget}>
       <div style={{ padding:"10px 18px", background:"#fef3c7", borderBottom:"1px solid #fde68a", fontSize:12, fontWeight:600, color:"#92400e", display:"flex", alignItems:"center", gap:6 }}>
@@ -1338,6 +1375,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     if (el === "clientDbSingle") return <ClientDbSingleCard />;
     if (el === "clientDbMulti") return <ClientDbMultiChips />;
     if (el === "clientDbNotFound") return <ClientDbNotFound />;
+    if (el === "clientDbErrorWidget") return <ClientDbErrorWidget />;
     if (el === "clientSearchResult") return <ClientSearchResult />;
     if (el === "projectTagPicker") return <ProjectTagPicker />;
     if (el === "projectIdWidget") return <ProjectIdWidget />;

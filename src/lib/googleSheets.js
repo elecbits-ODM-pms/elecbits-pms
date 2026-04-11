@@ -72,39 +72,46 @@ function parseCsv(text) {
   return rows;
 }
 
-/** Fetch & cache the client CSV. Returns [] on failure (logs the reason). */
+/**
+ * Fetch & cache the client CSV. Throws ClientDbError on any failure so the
+ * caller can distinguish "couldn't reach the sheet" from "sheet has no match".
+ */
+export class ClientDbError extends Error {
+  constructor(message, cause) { super(message); this.name = "ClientDbError"; this.cause = cause; }
+}
+
 async function fetchClientCsvRows(force = false) {
   if (!force && _clientCsvCache) return _clientCsvCache;
   if (!force && _clientCsvPromise) return _clientCsvPromise;
   if (!CLIENT_SHEET_ID) {
-    console.warn("[clientDb] VITE_CLIENT_SHEET_ID is not set — cannot search client database");
-    return [];
+    const msg = "VITE_CLIENT_SHEET_ID is not set — restart the dev server after editing .env.local";
+    console.error("[clientDb]", msg);
+    throw new ClientDbError(msg);
   }
   const url = `https://docs.google.com/spreadsheets/d/${CLIENT_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CLIENT_SHEET_NAME)}`;
   _clientCsvPromise = (async () => {
     try {
       const res = await fetch(url);
       if (!res.ok) {
-        console.error(
-          `[clientDb] CSV fetch failed: HTTP ${res.status}. ` +
-          `The sheet must be shared as "Anyone with the link → Viewer" OR ` +
-          `Published to web (File → Share → Publish to web → CSV).`
-        );
-        return [];
+        const msg = `HTTP ${res.status} fetching client sheet — make sure it's shared as "Anyone with the link → Viewer"`;
+        console.error("[clientDb]", msg);
+        throw new ClientDbError(msg);
       }
       const text = await res.text();
       // If Google returned an HTML error page instead of CSV, bail out cleanly
       if (text.trimStart().startsWith("<")) {
-        console.error("[clientDb] Sheet returned HTML instead of CSV — likely not publicly accessible");
-        return [];
+        const msg = "Sheet returned HTML instead of CSV — it isn't publicly accessible";
+        console.error("[clientDb]", msg);
+        throw new ClientDbError(msg);
       }
       const rows = parseCsv(text);
       _clientCsvCache = rows;
       console.log(`[clientDb] Loaded ${rows.length} rows from client database`);
       return rows;
     } catch (err) {
+      if (err instanceof ClientDbError) throw err;
       console.error("[clientDb] CSV fetch error:", err);
-      return [];
+      throw new ClientDbError(`Network error: ${err.message}`, err);
     } finally {
       _clientCsvPromise = null;
     }
@@ -173,7 +180,11 @@ export async function searchClients(query) {
     });
   }
   matches.sort((a, b) => a._rank - b._rank || a.organisationName.localeCompare(b.organisationName));
-  return matches.slice(0, MAX_MATCHES).map(({ _rank, ...rest }) => rest);
+  return matches.slice(0, MAX_MATCHES).map(m => {
+    const out = { ...m };
+    delete out._rank;
+    return out;
+  });
 }
 
 /** Force the next searchClients call to refetch the CSV (e.g. after the sheet was updated). */
