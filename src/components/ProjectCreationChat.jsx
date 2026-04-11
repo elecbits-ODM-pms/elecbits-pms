@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
-import { fetchClientsFromSheet, appendClientToSheet, searchCompanyInfo, searchClients, ClientDbError, preloadClientDb, isClientDbConfigured } from "../lib/googleSheets.js";
+import { fetchClientsFromSheet, searchCompanyInfo, searchClients, ClientDbError, preloadClientDb, isClientDbConfigured, appendNewClientToDb } from "../lib/googleSheets.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
 import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
@@ -641,7 +641,10 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const ClientIdWidget = () => {
     const [industry, setIndustry] = useState(INDUSTRY_CODES[0].code);
     const [orgSize, setOrgSize] = useState(ORG_SIZES[0].code);
-    const [count, setCount] = useState(1);
+    // Default count = (number of clients already in the sheet) + 1, so the
+    // next ID continues the sequence instead of restarting at 001.
+    const [count, setCount] = useState(() => Math.max(1, (dbStatus.rowCount || 0) + 1));
+    const [saving, setSaving] = useState(false);
     const genId = `Eb-${industry}-${orgSize}-${String(count).padStart(3,"0")}`;
     return (
       <div style={S.widget}>
@@ -670,27 +673,30 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
             </div>
           </div>
           <div style={{ padding:"10px 14px", background:"#f0f9ff", borderRadius:8, textAlign:"center", fontSize:18, fontWeight:800, fontFamily:"'IBM Plex Mono',monospace", color:"#1e3a8a", letterSpacing:"0.04em", marginBottom:12 }}>{genId}</div>
-          <button style={{ ...S.primaryBtn, width:"100%" }} onClick={() => {
+          <button style={{ ...S.primaryBtn, width:"100%", opacity: saving ? 0.6 : 1 }} disabled={saving} onClick={async () => {
             const indLabel = INDUSTRY_CODES.find(x=>x.code===industry)?.label || "";
             const sizeLabel = ORG_SIZES.find(x=>x.code===orgSize)?.label || "";
             setData(d=>({...d, clientId: genId, _industry: indLabel, _size: sizeLabel }));
             addMsg("user", genId);
-            // Immediately add new client to Google Sheet
-            appendClientToSheet({
-              clientName: data.clientName,
-              clientId: genId,
-              industry: indLabel,
-              size: sizeLabel,
-              contactName: "",
-              contactEmail: "",
-            }).then(ok => {
-              if (ok) {
-                // Update local cache with the new client
-                setSheetClients(prev => [...prev, { clientName: data.clientName, clientId: genId, industry: indLabel, size: sizeLabel, contactName: "", contactEmail: "" }]);
-              }
-            });
+            setSaving(true);
+            // Append the new client to the public client database (cols A:C).
+            // On failure (auth missing, no edit perms, network) we still let
+            // the user proceed and surface a warning so the project flow
+            // isn't blocked on the sheet write.
+            try {
+              await appendNewClientToDb({
+                sNo: count,
+                organisationName: data.clientName,
+                clientId: genId,
+              });
+              addMsg("system", `✓ Saved ${data.clientName} to the client database (row ${count}).`);
+            } catch (err) {
+              console.warn("[clientDb] save failed:", err);
+              addMsg("system", `⚠ Client saved locally — sheet sync failed (${err.message}). Please add ${data.clientName} (${genId}) to the sheet manually.`);
+            }
+            setSaving(false);
             setTimeout(()=>goStep("contact"), 100);
-          }}>Use this Client ID →</button>
+          }}>{saving ? "Saving…" : "Use this Client ID →"}</button>
         </div>
       </div>
     );

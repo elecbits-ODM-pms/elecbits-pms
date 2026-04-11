@@ -11,7 +11,7 @@
  * 4. See src/lib/googleAuth.js for full setup instructions
  */
 
-import { getAccessToken, isGoogleSignedIn } from "./googleAuth.js";
+import { isGoogleSignedIn } from "./googleAuth.js";
 import { readSheetAsObjects, appendToSheet, getSpreadsheetInfo } from "./googleApi.js";
 
 const SHEET_ID = import.meta.env.VITE_GSHEET_ID || "";
@@ -230,6 +230,48 @@ export async function preloadClientDb() {
 /** True if VITE_CLIENT_SHEET_ID is set. Useful for status badges. */
 export function isClientDbConfigured() {
   return !!CLIENT_SHEET_ID;
+}
+
+/**
+ * Append a new client row to the public Client Data and IDs sheet.
+ * Writes columns A (S.no), B (Organisation Name), C (Client ID).
+ *
+ * REQUIRES: the user is signed in via signInWithGoogle() AND that account
+ * has edit permission on the sheet. Reads are anonymous (gviz CSV) but
+ * writes always go through the OAuth-protected Sheets API v4.
+ *
+ * Throws ClientDbError on any failure (auth, network, API). The caller is
+ * expected to catch and fall back to a "saved locally" warning so the
+ * project creation flow can still proceed.
+ *
+ * @param {{ sNo: number|string, organisationName: string, clientId: string }} client
+ * @returns {Promise<{ ok: true }>}
+ */
+export async function appendNewClientToDb({ sNo, organisationName, clientId }) {
+  if (!CLIENT_SHEET_ID) {
+    throw new ClientDbError("Client database sheet ID not configured");
+  }
+  if (!organisationName || !clientId) {
+    throw new ClientDbError("organisationName and clientId are required");
+  }
+  if (!isGoogleSignedIn()) {
+    throw new ClientDbError("Sign in with Google to save new clients to the sheet");
+  }
+  // Sheets API v4 range syntax: tab name with spaces must be wrapped in
+  // single quotes; encodeURIComponent handles the % encoding.
+  const range = `'${CLIENT_SHEET_NAME}'!A:C`;
+  const row = [String(sNo ?? ""), organisationName, clientId];
+  try {
+    await appendToSheet(CLIENT_SHEET_ID, [row], range);
+    // Invalidate the read cache so a subsequent searchClients/preload picks
+    // up the new row instead of the stale snapshot.
+    clearClientDbCache();
+    console.log(`[clientDb] appended new client: ${clientId} ${organisationName}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("[clientDb] append failed:", err);
+    throw new ClientDbError(`Sheet write failed: ${err.message}`, err);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
