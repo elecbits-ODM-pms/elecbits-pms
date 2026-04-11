@@ -1247,6 +1247,26 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
               📋 Copy to Clipboard
             </button>
             <button
+              style={S.primaryBtn}
+              onClick={() => {
+                const safeName = (data.projectName || "LLD").replace(/[^a-z0-9-_]+/gi, "_");
+                const safeClient = (data.clientName || "client").replace(/[^a-z0-9-_]+/gi, "_");
+                const filename = `LLD_${safeName}_${safeClient}.md`;
+                const blob = new Blob([generatedLLD], { type: "text/markdown;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                addMsg("system", `Downloaded ${filename}`);
+              }}
+            >
+              ⬇️ Download .md
+            </button>
+            <button
               style={{ ...S.primaryBtn, background:"linear-gradient(135deg, #16a34a, #15803d)" }}
               onClick={() => goStep("startDate")}
             >
