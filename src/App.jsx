@@ -98,7 +98,6 @@ export default function App(){
       rejected:updated.rejected||false,rejected_reason:updated.rejectedReason||null,rejected_at:updated.rejectedAt||null,
       checklist_config:updated.checklistConfig||{},start_date:updated.startDate||null,end_date:updated.endDate||null,
       client_name:updated.clientName||null,client_id:updated.clientId||null,product_ids:updated.productIds||[],description:updated.description||null,
-      checklist_data:updated.checklists||{},custom_checklist_data:updated.customChecklists||{},
     });
     if(error){console.error("updateProject error:",error.message);return;}
     // Persist team assignments to team_assignments table
