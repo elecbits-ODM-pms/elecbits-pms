@@ -61,6 +61,7 @@ function rowToClient(row) {
     dueDiligence:     row.due_diligence ?? "",
     employees:        row.employees ?? "",
     funding:          row.funding ?? "",
+    cityState:        row.city_state ?? "",
   };
 }
 
@@ -77,7 +78,7 @@ async function fetchAllClients(force = false) {
         .select(
           "s_no, organisation_name, industry, org_size, client_id, client_folder, " +
           "contact_name, designation, contact_phone, contact_email, due_diligence, " +
-          "employees, funding, source_row_number"
+          "employees, funding, city_state, source_row_number"
         )
         .order("source_row_number", { ascending: true })
         .limit(10000);
@@ -174,7 +175,7 @@ export async function triggerSheetSync() {
  * source_row_number is set to max+1 so it won't collide with sheet rows.
  * Returns { ok: true, rowCount } on success, { ok: false, error } on failure.
  */
-export async function appendNewClient({ sNo, organisationName, clientId }) {
+export async function appendNewClient({ sNo, organisationName, clientId, industry, orgSize }) {
   if (!organisationName || !clientId) {
     return { ok: false, error: "organisationName and clientId are required" };
   }
@@ -193,6 +194,8 @@ export async function appendNewClient({ sNo, organisationName, clientId }) {
       s_no: String(sNo ?? ""),
       organisation_name: organisationName,
       client_id: clientId,
+      industry: industry || null,
+      org_size: orgSize || null,
       source_row_number: nextRow,
       dirty: true,
       last_synced_at: new Date().toISOString(),
@@ -218,6 +221,49 @@ export async function appendNewClient({ sNo, organisationName, clientId }) {
     console.error("[clientDb] insert error:", err);
     return { ok: false, error: err.message };
   }
+}
+
+/**
+ * Update additional fields on an existing client row (identified by client_id).
+ * Used after the initial insert to patch in contact, location, and other info
+ * collected in later chat steps. Re-marks the row as dirty so the next push
+ * sends the updated data to the sheet.
+ */
+export async function updateClientFields(clientId, fields) {
+  if (!clientId) return { ok: false, error: "clientId is required" };
+
+  const patch = {};
+  if (fields.contactName)   patch.contact_name   = fields.contactName;
+  if (fields.designation)   patch.designation     = fields.designation;
+  if (fields.contactPhone)  patch.contact_phone   = fields.contactPhone;
+  if (fields.contactEmail)  patch.contact_email   = fields.contactEmail;
+  if (fields.cityState)     patch.city_state      = fields.cityState;
+  if (fields.dueDiligence)  patch.due_diligence   = fields.dueDiligence;
+
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  patch.dirty = true; // re-mark so push picks it up
+
+  const { error } = await supabase
+    .from("clients")
+    .update(patch)
+    .eq("client_id", clientId);
+
+  if (error) {
+    console.error("[clientDb] updateClientFields failed:", error);
+    return { ok: false, error: error.message };
+  }
+
+  console.log(`[clientDb] updated fields for ${clientId}:`, Object.keys(patch).join(", "));
+  clearClientDbCache();
+
+  // Auto-push updated data to Google Sheet
+  pushDirtyToSheet().then(res => {
+    if (res.ok) console.log(`[clientDb] auto-push OK: ${res.pushed} rows pushed to sheet`);
+    else console.warn(`[clientDb] auto-push failed: ${res.error}`);
+  });
+
+  return { ok: true };
 }
 
 /**

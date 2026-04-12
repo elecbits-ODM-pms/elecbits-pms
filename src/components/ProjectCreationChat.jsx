@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase.js";
 import { fetchClientsFromSheet, searchCompanyInfo, appendNewClientToDb } from "../lib/googleSheets.js";
 import {
   searchClients, ClientDbError, preloadClientDb, isClientDbConfigured,
-  clearClientDbCache, triggerSheetSync, appendNewClient,
+  clearClientDbCache, triggerSheetSync, appendNewClient, updateClientFields,
 } from "../lib/clientsDb.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
@@ -180,6 +180,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   const [typing, setTyping] = useState(false);
   const [data, setData] = useState({
     clientName:"", clientId:"", contactName:"", contactEmail:"",
+    contactPhone:"", designation:"", cityState:"", dueDiligence:"",
     projectName:"", projectTag:"engineering", projectId:"",
     startDate:"", endDate:"", lldExists:null, lldUrl:"",
     lldAnswers: Array(30).fill(""),
@@ -325,11 +326,39 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
         setInputPlaceholder("e.g. Rajesh Kumar");
         break;
       }
+      case "designation": {
+        setActiveTab(0);
+        await sysMsg(`What is **${data.contactName}**'s designation / role?`);
+        setInputDisabled(false);
+        setInputPlaceholder("e.g. Procurement Manager, CTO, Founder");
+        break;
+      }
+      case "contactPhone": {
+        setActiveTab(0);
+        await sysMsg("Their phone number?");
+        setInputDisabled(false);
+        setInputPlaceholder("e.g. +91 98765 43210");
+        break;
+      }
       case "contactEmail": {
         setActiveTab(0);
-        await sysMsg("And their email or phone?");
+        await sysMsg("And their email address?");
         setInputDisabled(false);
         setInputPlaceholder("e.g. rajesh@acme.com");
+        break;
+      }
+      case "cityState": {
+        setActiveTab(0);
+        await sysMsg("Which city / state is the client based in?");
+        setInputDisabled(false);
+        setInputPlaceholder("e.g. Gurugram, Haryana");
+        break;
+      }
+      case "dueDiligence": {
+        setActiveTab(0);
+        await sysMsg("Any reference link for the client? (website, LinkedIn, etc.)");
+        setInputDisabled(false);
+        setInputPlaceholder("e.g. https://www.acme.com");
         break;
       }
       case "projectName": {
@@ -497,7 +526,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       started.current = false;
       setMessages([]);
       setCurrentStep("init");
-      setData({ clientName:"",clientId:"",contactName:"",contactEmail:"",projectName:"",projectTag:"engineering",projectId:"",startDate:"",endDate:"",lldExists:null,lldUrl:"",lldAnswers:Array(30).fill("") });
+      setData({ clientName:"",clientId:"",contactName:"",contactEmail:"",contactPhone:"",designation:"",cityState:"",dueDiligence:"",projectName:"",projectTag:"engineering",projectId:"",startDate:"",endDate:"",lldExists:null,lldUrl:"",lldAnswers:Array(30).fill("") });
       setLldIndex(0);
       setActiveTab(0);
       setDoneTab(-1);
@@ -534,10 +563,40 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       }
       case "contact":
         setData(d => ({ ...d, contactName: val }));
+        setTimeout(() => goStep("designation"), 100);
+        break;
+      case "designation":
+        setData(d => ({ ...d, designation: val }));
+        setTimeout(() => goStep("contactPhone"), 100);
+        break;
+      case "contactPhone":
+        setData(d => ({ ...d, contactPhone: val }));
         setTimeout(() => goStep("contactEmail"), 100);
         break;
       case "contactEmail":
         setData(d => ({ ...d, contactEmail: val }));
+        setTimeout(() => goStep("cityState"), 100);
+        break;
+      case "cityState":
+        setData(d => ({ ...d, cityState: val }));
+        setTimeout(() => goStep("dueDiligence"), 100);
+        break;
+      case "dueDiligence":
+        setData(d => {
+          const updated = { ...d, dueDiligence: val };
+          // Patch all collected fields onto the client row in Supabase
+          if (updated.clientId) {
+            updateClientFields(updated.clientId, {
+              contactName:  updated.contactName,
+              designation:  updated.designation,
+              contactPhone: updated.contactPhone,
+              contactEmail: updated.contactEmail,
+              cityState:    updated.cityState,
+              dueDiligence: val,
+            });
+          }
+          return updated;
+        });
         setTimeout(() => goStep("projectName"), 100);
         break;
       case "projectName":
@@ -644,9 +703,9 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   };
 
   /* ─── PROGRESS ─────────────────────────────────────────────────*/
-  const totalSteps = 10 + (data.lldExists === false ? 30 : 0);
+  const totalSteps = 14 + (data.lldExists === false ? 30 : 0);
   const currentQ = (() => {
-    const base = { init:1, clientId:2, contact:3, contactEmail:4, projectName:5, projectTag:6, projectIdGen:7, lldChoice:8 };
+    const base = { init:1, clientId:2, contact:3, designation:4, contactPhone:5, contactEmail:6, cityState:7, dueDiligence:8, projectName:9, projectTag:10, projectIdGen:11, lldChoice:12 };
     if (base[currentStep]) return base[currentStep];
     if (currentStep === "lldUrl") return 9;
     if (currentStep === "lldQuestion") return 8 + lldIndex + 1;
@@ -701,10 +760,14 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
             setSaving(true);
             // Insert the new client directly into Supabase (dirty=true).
             // No Google sign-in required. The sync function preserves dirty rows.
+            // Additional fields (contact, location, etc.) are collected in later
+            // steps and patched onto the row via updateClientFields().
             const saveRes = await appendNewClient({
               sNo: count,
               organisationName: data.clientName,
               clientId: genId,
+              industry: indLabel,
+              orgSize: sizeLabel,
             });
             if (saveRes.ok) {
               setDbStatus(s => ({ ...s, rowCount: saveRes.rowCount }));
@@ -898,12 +961,16 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       clientName:   c.organisationName,
       clientId:     c.clientId     || d.clientId,
       contactName:  c.contactName  || d.contactName,
-      contactEmail: c.contactEmail || c.contactPhone || d.contactEmail,
+      contactEmail: c.contactEmail || d.contactEmail,
+      contactPhone: c.contactPhone || d.contactPhone,
+      designation:  c.designation  || d.designation,
+      cityState:    c.cityState    || d.cityState,
+      dueDiligence: c.dueDiligence || d.dueDiligence,
     }));
     addMsg("user", `Use ${c.organisationName}`);
-    const nextStep = !c.clientId                          ? "clientId"
-                   : !c.contactName                       ? "contact"
-                   : !(c.contactEmail || c.contactPhone)  ? "contactEmail"
+    const nextStep = !c.clientId      ? "clientId"
+                   : !c.contactName   ? "contact"
+                   : !c.contactEmail  ? "contactEmail"
                    : "projectName";
     setTimeout(() => goStep(nextStep), 100);
   };
@@ -1395,7 +1462,11 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
           <div><span style={{ color:"#64748b" }}>Client:</span> <strong>{data.clientName}</strong></div>
           <div><span style={{ color:"#64748b" }}>Client ID:</span> <span style={{ fontFamily:"'IBM Plex Mono',monospace" }}>{data.clientId}</span></div>
           <div><span style={{ color:"#64748b" }}>Contact:</span> {data.contactName}</div>
+          {data.designation && <div><span style={{ color:"#64748b" }}>Designation:</span> {data.designation}</div>}
+          {data.contactPhone && <div><span style={{ color:"#64748b" }}>Phone:</span> {data.contactPhone}</div>}
           <div><span style={{ color:"#64748b" }}>Email:</span> {data.contactEmail}</div>
+          {data.cityState && <div><span style={{ color:"#64748b" }}>Location:</span> {data.cityState}</div>}
+          {data.dueDiligence && <div><span style={{ color:"#64748b" }}>Reference:</span> {data.dueDiligence}</div>}
           <div style={{ gridColumn:"span 2", borderTop:"1px solid #e2e8f0", paddingTop:8, marginTop:4 }} />
           <div><span style={{ color:"#64748b" }}>Project:</span> <strong>{data.projectName}</strong></div>
           <div><span style={{ color:"#64748b" }}>Project ID:</span> <span style={{ fontFamily:"'IBM Plex Mono',monospace" }}>{data.projectId}</span></div>
