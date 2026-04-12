@@ -123,6 +123,21 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
+    // Optional: accept a project_id in the body to force-push a specific project
+    let forceProjectId: string | null = null;
+    try {
+      const body = await req.json();
+      forceProjectId = body?.project_id ?? null;
+    } catch { /* no body or invalid JSON — that's fine */ }
+
+    // If force-pushing, mark the target row as dirty first
+    if (forceProjectId) {
+      await supabase
+        .from("projects")
+        .update({ dirty: true })
+        .eq("project_id", forceProjectId);
+    }
+
     // 1. Read dirty project rows
     const { data: dirtyRows, error: readErr } = await supabase
       .from("projects")
@@ -186,9 +201,22 @@ Deno.serve(async (req) => {
       "",                          // X: Remarks
     ]);
 
-    // 4. Append to Google Sheet via Sheets API v4
-    //    Use SHEET_NAME if set, otherwise omit sheet prefix (defaults to first tab)
-    const rawRange = SHEET_NAME ? `'${SHEET_NAME}'!A:X` : "A:X";
+    // 4. Resolve the actual sheet tab name
+    let tabName = SHEET_NAME;
+    if (!tabName) {
+      // Fetch spreadsheet metadata to get the first sheet's title
+      const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`;
+      const metaRes = await fetch(metaUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (metaRes.ok) {
+        const meta = await metaRes.json();
+        tabName = meta.sheets?.[0]?.properties?.title ?? "";
+      }
+    }
+
+    // 5. Append to Google Sheet via Sheets API v4
+    const rawRange = tabName ? `'${tabName}'!A:X` : "A:X";
     const range = encodeURIComponent(rawRange);
     const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
 
@@ -203,11 +231,12 @@ Deno.serve(async (req) => {
 
     if (!appendRes.ok) {
       const errBody = await appendRes.text();
-      return json({ error: `Sheet append failed: ${appendRes.status} ${errBody}` }, 502);
+      return json({ error: `Sheet append failed: ${appendRes.status} ${errBody}`, tabName, range: rawRange }, 502);
     }
 
     const appendData = await appendRes.json();
     const updatedRows = appendData.updates?.updatedRows ?? sheetRows.length;
+    const updatedRange = appendData.updates?.updatedRange ?? "";
 
     // 5. Mark pushed rows as dirty=false
     const dirtyIds = dirtyRows.map((r) => r.id);
@@ -228,6 +257,8 @@ Deno.serve(async (req) => {
       ok: true,
       pushed: updatedRows,
       dirtyCleared: dirtyIds.length,
+      tabName,
+      updatedRange,
       durationMs,
     });
   } catch (err) {
