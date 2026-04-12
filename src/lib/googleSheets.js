@@ -428,33 +428,69 @@ export async function appendClientToSheet({ clientName, clientId, industry, size
 export async function searchCompanyInfo(companyName) {
   if (!companyName || companyName.length < 2) return null;
 
+  // 1. Try Wikipedia — best for well-known companies, returns rich summaries.
+  try {
+    const wikiSearch = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(companyName)}&limit=1&format=json`
+    );
+    const [, titles, , urls] = await wikiSearch.json();
+    if (titles?.length > 0) {
+      // Relevance guard: at least one query word must appear in the Wikipedia title
+      // to avoid false matches (e.g. "napino" → "Napoleon").
+      const queryWords = companyName.toLowerCase().split(/\s+/);
+      const titleLower = titles[0].toLowerCase();
+      const relevant = queryWords.some(w => titleLower.includes(w));
+      if (!relevant) throw new Error("Wikipedia result not relevant");
+      const slug = urls[0].split("/wiki/")[1];
+      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`);
+      if (summaryRes.ok) {
+        const s = await summaryRes.json();
+        if (s.extract) {
+          return {
+            abstract: s.extract,
+            url: s.content_urls?.desktop?.page || urls[0],
+            source: "Wikipedia",
+            image: s.thumbnail?.source || "",
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[search] Wikipedia lookup failed, trying DuckDuckGo:", err.message);
+  }
+
+  // 2. Fallback: DuckDuckGo Instant Answer (handles disambiguation pages too).
   try {
     const q = encodeURIComponent(companyName + " company");
-    const res = await fetch(`https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&skip_disambig=1`);
+    const res = await fetch(`https://api.duckduckgo.com/?q=${q}&format=json&no_html=1`);
     const data = await res.json();
 
-    if (data.Abstract || data.AbstractText) {
+    if (data.AbstractText || data.Abstract) {
       return {
-        abstract: data.AbstractText || data.Abstract || "",
+        abstract: data.AbstractText || data.Abstract,
         url: data.AbstractURL || data.Results?.[0]?.FirstURL || "",
         source: data.AbstractSource || "DuckDuckGo",
         image: data.Image || "",
       };
     }
 
+    // Disambiguation or partial results — pick the first topic.
     if (data.RelatedTopics?.length > 0) {
       const first = data.RelatedTopics[0];
-      return {
-        abstract: first.Text || "",
-        url: first.FirstURL || "",
-        source: "DuckDuckGo",
-        image: "",
-      };
+      // Some entries are grouped under a Name — flatten one level.
+      const topic = first.Text ? first : first.Topics?.[0];
+      if (topic?.Text) {
+        return {
+          abstract: topic.Text,
+          url: topic.FirstURL || "",
+          source: "DuckDuckGo",
+          image: "",
+        };
+      }
     }
-
-    return null;
   } catch (err) {
-    console.error("[search] error:", err);
-    return null;
+    console.error("[search] DuckDuckGo lookup failed:", err.message);
   }
+
+  return null;
 }
