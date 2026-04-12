@@ -259,7 +259,7 @@ const DevConsole = ({ currentUser }) => {
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
               }}>
-                {msg.role === "user" ? currentUser?.name || "You" : "Assistant"}
+                {msg.role === "user" ? currentUser?.name || "You" : "Azoox"}
               </span>
               <span style={{ fontSize: 9, color: "#afb8c1" }}>
                 {new Date(msg.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}

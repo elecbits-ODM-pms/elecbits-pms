@@ -99,7 +99,7 @@ const tools = [
 ];
 
 // ─── SYSTEM PROMPT ───────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are an AI development assistant embedded in the Elecbits PMS (Project Management System) webapp. You have full access to the GitHub repository: ${REPO_OWNER}/${REPO_NAME}.
+const SYSTEM_PROMPT = `You are Azoox, an AI development assistant embedded in the Elecbits PMS (Project Management System) webapp. You have full access to the GitHub repository: ${REPO_OWNER}/${REPO_NAME}.
 
 ## Tech Stack
 - Frontend: React 19 + Vite (no SSR, pure SPA)
