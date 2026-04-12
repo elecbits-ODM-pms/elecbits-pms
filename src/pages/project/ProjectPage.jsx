@@ -403,9 +403,15 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                                   {selectedAtCap&&<div style={{fontSize:10,fontWeight:700,color:"#dc2626",background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:5,padding:"4px 8px",display:"flex",alignItems:"center",gap:4}}>
                                     <span style={{fontSize:12}}>!</span> {(users||[]).find(u=>u.id===a.userId)?.name} is at full capacity ({selectedOverlap}/{selectedCap} projects) for overlapping dates
                                   </div>}
-                                  <div style={{display:"flex",gap:4}}>
-                                    <Inp type="date" value={a?.startDate||""} onChange={e=>updateSlot(slot.role,"startDate",e.target.value)} style={{padding:"3px 5px",fontSize:9,flex:1,borderRadius:5}}/>
-                                    <Inp type="date" value={a?.endDate||""} onChange={e=>updateSlot(slot.role,"endDate",e.target.value)} style={{padding:"3px 5px",fontSize:9,flex:1,borderRadius:5}}/>
+                                  <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                                    <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+                                      <span style={{fontSize:9,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em",width:26,flexShrink:0}}>Start</span>
+                                      <Inp type="date" value={a?.startDate||""} onChange={e=>updateSlot(slot.role,"startDate",e.target.value)} style={{padding:"4px 6px",fontSize:10,flex:1,minWidth:0,borderRadius:5,boxSizing:"border-box",width:"100%"}}/>
+                                    </div>
+                                    <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+                                      <span style={{fontSize:9,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em",width:26,flexShrink:0}}>End</span>
+                                      <Inp type="date" value={a?.endDate||""} onChange={e=>updateSlot(slot.role,"endDate",e.target.value)} style={{padding:"4px 6px",fontSize:10,flex:1,minWidth:0,borderRadius:5,boxSizing:"border-box",width:"100%"}}/>
+                                    </div>
                                   </div>
                                 </div>
                               ):(
