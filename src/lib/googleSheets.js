@@ -431,7 +431,7 @@ export async function searchCompanyInfo(companyName) {
   // 1. Try Wikipedia — best for well-known companies, returns rich summaries.
   try {
     const wikiSearch = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(companyName)}&limit=1&format=json`
+      `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(companyName)}&limit=1&format=json&origin=*`
     );
     const [, titles, , urls] = await wikiSearch.json();
     if (titles?.length > 0) {
