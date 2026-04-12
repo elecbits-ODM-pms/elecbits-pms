@@ -155,70 +155,77 @@ Deno.serve(async (req) => {
     // 2. Get Google access token via service account
     const accessToken = await getAccessToken(serviceAccount);
 
-    // 3. Build rows to append matching the sheet layout (columns A:X):
+    // 3. Build rows to append matching the April_2026 sheet layout (columns A:W):
     //    A: S. No.
-    //    B: Project Name
-    //    C: Type of Services (project_tag)
-    //    D: Technology / Capability
-    //    E: LLD - PM
-    //    F: Milestone Tracker
-    //    G: Project ID Link - PM  ← project_id goes here
-    //    H: Zoho Link - PM
-    //    I: Audit Checklist - PM
-    //    J: Product ID - Technical /GW - Link
-    //    K: Zoho Link - Product
-    //    L: Audit Checklist - Product
-    //    M: Initial Customer Contact (client_name)
-    //    N-S: PM, TM, HW, HW, FW, FW, Enclosure (team — left blank)
+    //    B: Project - ID          ← project_id goes here
+    //    C: Project Name
+    //    D: Type of Services (project_tag)
+    //    E: Technology / Capability
+    //    F: LLD - PM
+    //    G: Milestone Tracker
+    //    H: Audit Checklist - PM
+    //    I: Product ID - Technical /GW - Link
+    //    J: Audit Checklist - Product
+    //    K: Initial Customer Contact (client_name)
+    //    L: Senior PM
+    //    M: PM
+    //    N: TM
+    //    O: Senior HW
+    //    P: HW
+    //    Q: Senior FW
+    //    R: FW
+    //    S: Industrial Design
     //    T: Timeline
     //    U: Start Date
     //    V: End Date
     //    W: Remarks
-    const sheetRows = dirtyRows.map((r, idx) => [
-      "",                          // A: S. No. (auto-filled or manual)
-      r.name         ?? "",        // B: Project Name
-      r.project_tag  ?? "",        // C: Type of Services
-      "",                          // D: Technology / Capability
-      r.lld_url      ?? "",        // E: LLD - PM
-      "",                          // F: Milestone Tracker
-      r.project_id   ?? "",        // G: Project ID Link - PM
-      "",                          // H: Zoho Link - PM
-      "",                          // I: Audit Checklist - PM
-      "",                          // J: Product ID - Technical /GW - Link
-      "",                          // K: Zoho Link - Product
-      "",                          // L: Audit Checklist - Product
-      r.client_name  ?? "",        // M: Initial Customer Contact
-      "",                          // N: PM
-      "",                          // O: TM
+    const sheetRows = dirtyRows.map((r) => [
+      "",                          // A: S. No.
+      r.project_id   ?? "",        // B: Project - ID
+      r.name         ?? "",        // C: Project Name
+      r.project_tag  ?? "",        // D: Type of Services
+      "",                          // E: Technology / Capability
+      r.lld_url      ?? "",        // F: LLD - PM
+      "",                          // G: Milestone Tracker
+      "",                          // H: Audit Checklist - PM
+      "",                          // I: Product ID - Technical /GW - Link
+      "",                          // J: Audit Checklist - Product
+      r.client_name  ?? "",        // K: Initial Customer Contact
+      "",                          // L: Senior PM
+      "",                          // M: PM
+      "",                          // N: TM
+      "",                          // O: Senior HW
       "",                          // P: HW
-      "",                          // Q: HW
+      "",                          // Q: Senior FW
       "",                          // R: FW
-      "",                          // S: FW
-      "",                          // T: Enclosure
-      "",                          // U: Timeline
-      r.start_date   ?? "",        // V: Start Date
-      r.end_date     ?? "",        // W: End Date
-      "",                          // X: Remarks
+      "",                          // S: Industrial Design
+      "",                          // T: Timeline
+      r.start_date   ?? "",        // U: Start Date
+      r.end_date     ?? "",        // V: End Date
+      "",                          // W: Remarks
     ]);
 
-    // 4. Resolve the actual sheet tab name
+    // 4. Resolve the sheet tab name — find the latest month tab (or use configured name)
     let tabName = SHEET_NAME;
-    if (!tabName) {
-      // Fetch spreadsheet metadata to get the first sheet's title
-      const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`;
-      const metaRes = await fetch(metaUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (metaRes.ok) {
-        const meta = await metaRes.json();
-        tabName = meta.sheets?.[0]?.properties?.title ?? "";
+    let allTabs: string[] = [];
+    // Always fetch metadata so we know all tab names
+    const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`;
+    const metaRes = await fetch(metaUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (metaRes.ok) {
+      const meta = await metaRes.json();
+      allTabs = (meta.sheets || []).map((s: { properties: { title: string } }) => s.properties.title);
+      if (!tabName) {
+        // Use the LAST tab (most recent month)
+        tabName = allTabs[allTabs.length - 1] ?? "";
       }
     }
 
     // 5. Append to Google Sheet via Sheets API v4
-    const rawRange = tabName ? `'${tabName}'!A:X` : "A:X";
+    const rawRange = tabName ? `'${tabName}'!A:W` : "A:W";
     const range = encodeURIComponent(rawRange);
-    const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+    const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
 
     const appendRes = await fetch(appendUrl, {
       method: "POST",
@@ -258,6 +265,7 @@ Deno.serve(async (req) => {
       pushed: updatedRows,
       dirtyCleared: dirtyIds.length,
       tabName,
+      allTabs,
       updatedRange,
       durationMs,
     });
