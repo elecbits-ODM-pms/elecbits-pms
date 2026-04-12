@@ -1,0 +1,19 @@
+{
+  "name": "azoox-server",
+  "version": "1.0.0",
+  "description": "Azoox AI dev assistant backend — uses Claude Agent SDK with OAuth subscription auth",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.104",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

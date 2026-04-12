@@ -1,11 +1,12 @@
-// DevConsole — AI Development Assistant with GitHub integration
-// Superadmin-only chat interface that can read/edit/push code via Claude + GitHub API
+// DevConsole — AI Development Assistant (Azoox) with GitHub integration
+// Superadmin-only chat interface that talks to the Azoox server running on Fly.io
+// The server uses Claude Agent SDK with OAuth subscription auth
 
 import { useState, useRef, useEffect } from "react";
-import { supabase } from "../lib/supabase.js";
 
-const SUPABASE_URL = "https://ngxdukdmudtebykmihgw.supabase.co";
-const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/dev-console`;
+// Azoox backend URL — Fly.io deployment
+const AZOOX_URL = import.meta.env.VITE_AZOOX_URL || "https://azoox-server.fly.dev";
+const AZOOX_SECRET = import.meta.env.VITE_AZOOX_SECRET || "";
 
 const DevConsole = ({ currentUser }) => {
   const [messages, setMessages] = useState([]);
@@ -37,22 +38,17 @@ const DevConsole = ({ currentUser }) => {
     setToolEvents([]);
 
     try {
-      // Get JWT for auth
-      const { data: { session } } = await supabase.auth.getSession();
-      const jwt = session?.access_token;
-
-      // Build messages for Claude (only role + content)
+      // Build messages for the agent
       const apiMessages = newMessages.map(m => ({
         role: m.role === "assistant" ? "assistant" : "user",
         content: m.content,
       }));
 
-      const res = await fetch(FUNCTION_URL, {
+      const res = await fetch(`${AZOOX_URL}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${jwt}`,
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neGR1a2RtdWR0ZWJ5a21paGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2OTU3MjMsImV4cCI6MjA5MDI3MTcyM30.i4QTf0nC_zvO5YtpdXNGQPMcib_yWeMbCXz9PNsL15s",
+          "x-azoox-secret": AZOOX_SECRET,
         },
         body: JSON.stringify({ messages: apiMessages, branch }),
       });
@@ -62,12 +58,22 @@ const DevConsole = ({ currentUser }) => {
         throw new Error(`Server error: ${err}`);
       }
 
-      // Read SSE stream
+      // Read NDJSON stream from Claude Agent SDK
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let assistantText = "";
       let currentToolEvents = [];
       let buffer = "";
+
+      const pushAssistantUpdate = () => {
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && last?._streaming) {
+            return [...prev.slice(0, -1), { ...last, content: assistantText }];
+          }
+          return [...prev, { role: "assistant", content: assistantText, timestamp: Date.now(), _streaming: true, tools: [] }];
+        });
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -75,43 +81,60 @@ const DevConsole = ({ currentUser }) => {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
-        buffer = lines.pop() || ""; // keep incomplete line in buffer
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
+          if (!line.trim()) continue;
           try {
-            const event = JSON.parse(line.slice(6));
+            const msg = JSON.parse(line);
 
-            if (event.type === "text") {
-              assistantText += event.content;
-              // Update message in real-time
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant" && last?._streaming) {
-                  return [...prev.slice(0, -1), { ...last, content: assistantText }];
+            // Claude Agent SDK message types
+            if (msg.type === "assistant" && msg.message?.content) {
+              // Full assistant message — extract text blocks
+              const textBlocks = msg.message.content.filter(b => b.type === "text");
+              const toolUseBlocks = msg.message.content.filter(b => b.type === "tool_use");
+
+              for (const block of textBlocks) {
+                if (block.text) {
+                  assistantText += (assistantText ? "\n" : "") + block.text;
                 }
-                return [...prev, { role: "assistant", content: assistantText, timestamp: Date.now(), _streaming: true, tools: [] }];
-              });
-            } else if (event.type === "tool_start") {
-              const te = { name: event.name, input: event.input, status: "running", result: null };
-              currentToolEvents = [...currentToolEvents, te];
-              setToolEvents([...currentToolEvents]);
-            } else if (event.type === "tool_result") {
-              currentToolEvents = currentToolEvents.map((t, i) =>
-                i === currentToolEvents.length - 1 ? { ...t, status: "done", result: event.result } : t
-              );
-              setToolEvents([...currentToolEvents]);
-            } else if (event.type === "error") {
-              assistantText += `\n\n**Error:** ${event.content}`;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant" && last?._streaming) {
-                  return [...prev.slice(0, -1), { ...last, content: assistantText }];
-                }
-                return [...prev, { role: "assistant", content: assistantText, timestamp: Date.now(), _streaming: true, tools: [] }];
-              });
-            } else if (event.type === "done") {
-              // Finalize
+              }
+              if (textBlocks.length) pushAssistantUpdate();
+
+              for (const tu of toolUseBlocks) {
+                currentToolEvents = [...currentToolEvents, {
+                  name: tu.name,
+                  input: tu.input,
+                  status: "running",
+                  result: null,
+                }];
+                setToolEvents([...currentToolEvents]);
+              }
+            } else if (msg.type === "user" && msg.message?.content) {
+              // Tool results come back as user messages with tool_result blocks
+              const toolResults = msg.message.content.filter(b => b.type === "tool_result");
+              for (const tr of toolResults) {
+                const resultText = typeof tr.content === "string"
+                  ? tr.content
+                  : Array.isArray(tr.content)
+                    ? tr.content.map(c => c.text || "").join("")
+                    : JSON.stringify(tr.content);
+                currentToolEvents = currentToolEvents.map((t, i) =>
+                  i === currentToolEvents.length - 1 && t.status === "running"
+                    ? { ...t, status: "done", result: resultText.slice(0, 500) }
+                    : t
+                );
+                setToolEvents([...currentToolEvents]);
+              }
+            } else if (msg.type === "result") {
+              // Final result with full text
+              if (msg.result && typeof msg.result === "string") {
+                assistantText = msg.result;
+                pushAssistantUpdate();
+              }
+            } else if (msg.type === "error") {
+              assistantText += `\n\n**Error:** ${msg.error}`;
+              pushAssistantUpdate();
             }
           } catch (_) { /* skip malformed lines */ }
         }
