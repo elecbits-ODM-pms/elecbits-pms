@@ -155,7 +155,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
 
       <div style={{flex:1,overflow:"auto",padding:22}}>
         {tab==="details"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:22}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 420px",gap:22}}>
             <div>
               {(()=>{
                 const saveSheet=()=>{upd({...project,...sheetDraft,productId:sheetDraft.productIds[0]||""});setEditSheet(false);showToast("Internal sheet updated ✓","var(--green)");};
@@ -214,7 +214,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
               </div>
             </div>
 
-            <div>
+            <div style={{minWidth:0,overflow:"hidden"}}>
               {isAdmin&&(()=>{
                 const currentTM=(project.teamAssignments||[]).find(a=>a.role==="Senior PM");
                 const currentTMUser=currentTM?getUser(currentTM.userId,users):null;
@@ -306,7 +306,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                               <div style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{slot.role}</div>
                               {editTeam?(
                                 <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                                  <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:"1px solid #e2e8f0",background:"#fff"}}>
+                                  <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:"1px solid #e2e8f0",background:"#fff",width:"100%",maxWidth:"100%"}}>
                                     <option value="">-- Select --</option>
                                     {eligible.map(u=><option key={u.id} value={String(u.id)}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label||u.resourceRole||"Team"})</option>)}
                                   </Sel>
