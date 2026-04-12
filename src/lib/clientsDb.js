@@ -136,8 +136,17 @@ export async function triggerSheetSync() {
   const transportMs = Date.now() - t0;
 
   if (error) {
-    console.error("[clientDb] sync-clients invoke failed:", error);
-    return { ok: false, error: error.message || String(error) };
+    // Supabase JS wraps non-2xx responses in FunctionsHttpError — try to
+    // extract the real body so we can surface a meaningful message.
+    let detail = error.message || String(error);
+    try {
+      if (error.context && typeof error.context.json === "function") {
+        const body = await error.context.json();
+        detail = body?.error || JSON.stringify(body);
+      }
+    } catch { /* ignore parse failure */ }
+    console.error("[clientDb] sync-clients invoke failed:", detail, error);
+    return { ok: false, error: detail };
   }
   if (!data || data.ok !== true) {
     const msg = data?.error || "edge function returned no data";

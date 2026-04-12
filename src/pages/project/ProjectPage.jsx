@@ -246,6 +246,20 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 const saveTeam=()=>{upd({...project,teamAssignments:teamDraft});setEditTeam(false);showToast("Team updated ✓","var(--green)");};
                 const getSlotAssignment=(role)=>teamDraft.find(x=>x.role===role);
                 const updateSlot=(role,field,val)=>setTeamDraft(prev=>{const exists=prev.find(x=>x.role===role);if(exists)return prev.map(x=>x.role===role?{...x,[field]:val}:x);return [...prev,{role,userId:"",startDate:project.startDate||"",endDate:project.endDate||"",[field]:val}];});
+                const assignSlot=async(slotRole,userId)=>{
+                  const member=userId?(users||[]).find(u=>u.id===userId):null;
+                  if(!userId){
+                    await supabase.from("team_assignments").delete().eq("project_id",project.id).eq("role",slotRole);
+                  }else{
+                    await supabase.from("team_assignments").upsert({project_id:project.id,user_id:Number(userId),role:slotRole,start_date:project.startDate||null,end_date:project.endDate||null},{onConflict:"project_id,role"});
+                  }
+                  const newTA=(project.teamAssignments||[]).filter(a=>a.role!==slotRole);
+                  if(userId)newTA.push({userId:Number(userId),role:slotRole,startDate:project.startDate||"",endDate:project.endDate||""});
+                  const updated={...project,teamAssignments:newTA};
+                  setTeamDraft(newTA);
+                  upd(updated);
+                  showToast(member?`${member.name} assigned as ${slotRole} ✓`:`${slotRole} unassigned ✓`,"var(--green)");
+                };
                 return(
                   <>
                     <SH title="Team & Dates" action={isPM&&<Btn v="ghost" style={{fontSize:10,padding:"3px 9px"}} onClick={()=>{setTeamDraft(project.teamAssignments||[]);setEditTeam(!editTeam);}}>{editTeam?"Cancel":"✏ Edit Team"}</Btn>}/>
@@ -261,7 +275,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                             {editTeam?(
                               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                                 <div style={{fontSize:11,color:"var(--txt3)",fontWeight:500}}>{slot.label}</div>
-                                <Sel value={a?.userId||""} onChange={e=>updateSlot(slot.role,"userId",e.target.value?Number(e.target.value):"")} style={{padding:"4px 6px",fontSize:11}}>
+                                <Sel value={a?.userId||""} onChange={e=>{const v=e.target.value;updateSlot(slot.role,"userId",v?Number(v):"");assignSlot(slot.role,v?Number(v):null);}} style={{padding:"4px 6px",fontSize:11}}>
                                   <option value="">— Select {slot.role} —</option>
                                   {eligible.map(u=><option key={u.id} value={u.id}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label})</option>)}
                                 </Sel>
