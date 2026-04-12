@@ -107,7 +107,7 @@ export const avColors=["#2563eb","#ea580c","#16a34a","#d97706","#7c3aed","#dc262
 export const getUser=(id,users)=>users.find(x=>x.id===id);
 export const nonAdmins=(users)=>users.filter(u=>u.role!=="superadmin");
 export const userCap=(u)=>u?.maxProjects||RESOURCE_ROLES.find(r=>r.key===u?.resourceRole)?.maxProjects||2;
-export const activeProjs=(uid,projects,onDate=todayStr())=>projects.filter(p=>p.teamAssignments?.some(a=>a.userId===uid&&a.startDate<=onDate&&(a.endDate||"9999")>=onDate));
+export const activeProjs=(uid,projects,onDate=todayStr())=>projects.filter(p=>p.teamAssignments?.some(a=>a.userId===uid&&(a.startDate||"0000")<=onDate&&(a.endDate||"9999")>=onDate));
 export const getPM=(p,users)=>{const a=p.teamAssignments?.find(x=>["PM","Junior PM","Project Manager"].some(r=>x.role.includes(r))&&x.userId!==1);return a?getUser(a.userId,users):null;};
 export const eligibleForTag=(users,tag)=>users.filter(u=>!tag||(u.projectTags||[]).includes(tag));
 
