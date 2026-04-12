@@ -21,7 +21,7 @@ const ResourcesView=({projects,users,setUsers,isAdmin,currentUser})=>{
   const [toast,setToast]=useState(null);
   const showToast=(msg,color)=>{setToast({msg,color});setTimeout(()=>setToast(null),2600);};
 
-  const members=nonAdmins(users);
+  const members=users;
   const DEPT_LIST=["Hardware","Firmware","Industrial Design","Testing","Project Management","Supply Chain","DevOps","Solution Architecture","Soldering & Testing","Management"];
   const DEPT_ROLES={
     Hardware:["sr_hw","jr_hw"],Firmware:["sr_fw","jr_fw"],"Industrial Design":["ind_design"],
