@@ -8,6 +8,7 @@ import {
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
 import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
+import { pushDirtyProjectsToSheet, getNextProjectCount } from "../lib/projectsDb.js";
 
 /* ─── LLD QUESTIONS ──────────────────────────────────────────────*/
 const LLD_QUESTIONS = [
@@ -645,6 +646,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       created_by:       currentUser.id,
       lld_url:          data.lldUrl || null,
       lld_data:         data.lldExists ? null : { answers: data.lldAnswers, contact: data.contactName, email: data.contactEmail, generatedDocument: generatedLLD || null },
+      dirty:            true,
     }).select().single();
 
     if (pe) {
@@ -698,6 +700,12 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
           : c
       ));
     }
+
+    // Auto-push project to Google Sheet in the background
+    pushDirtyProjectsToSheet().then(res => {
+      if (res.ok) console.log(`[projectsDb] auto-push OK: ${res.pushed} rows pushed to sheet`);
+      else console.warn(`[projectsDb] auto-push failed: ${res.error}`);
+    });
 
     goStep("done");
   };
@@ -1158,38 +1166,48 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   };
 
   const ProjectIdWidget = () => {
-    const now = new Date();
-    const [month, setMonth] = useState(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`);
+    const clientId = data.clientId || "";
     const [count, setCount] = useState(1);
-    const yymm = month.slice(2,4) + month.slice(5,7);
-    const genId = `EB-${yymm}-${String(count).padStart(3,"0")}`;
+    const [loadingCount, setLoadingCount] = useState(true);
+    const genId = `EbZ-${clientId}-${String(count).padStart(3,"0")}`;
     const isDuplicate = allProjects.some(p => p.projectId === genId);
+
+    // Auto-calculate the next count for this client on mount
+    useEffect(() => {
+      let cancelled = false;
+      (async () => {
+        const next = await getNextProjectCount(clientId);
+        if (!cancelled) { setCount(next); setLoadingCount(false); }
+      })();
+      return () => { cancelled = true; };
+    }, [clientId]);
+
     return (
       <div style={S.widget}>
         <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569" }}>Project ID Generator</div>
         <div style={S.widgetInner}>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
             <div>
-              <div style={S.miniLabel}>Start Month</div>
-              <input type="month" style={S.miniInput} value={month} onChange={e=>setMonth(e.target.value)} />
+              <div style={S.miniLabel}>Client ID</div>
+              <input style={{ ...S.miniInput, background:"#f1f5f9", color:"#64748b" }} value={clientId} readOnly />
             </div>
             <div>
               <div style={S.miniLabel}>Project Count</div>
-              <input type="number" min={1} style={S.miniInput} value={count} onChange={e=>setCount(Math.max(1,+e.target.value))} />
+              <input type="number" min={1} style={S.miniInput} value={count} onChange={e=>setCount(Math.max(1,+e.target.value))} disabled={loadingCount} />
             </div>
           </div>
           <div style={{ padding:"10px 14px", background:"#f0f9ff", borderRadius:8, textAlign:"center", marginBottom:4 }}>
-            <div style={{ fontSize:18, fontWeight:800, fontFamily:"'IBM Plex Mono',monospace", color:"#1e3a8a", letterSpacing:"0.04em" }}>{genId}</div>
+            <div style={{ fontSize:18, fontWeight:800, fontFamily:"'IBM Plex Mono',monospace", color:"#1e3a8a", letterSpacing:"0.04em" }}>{loadingCount ? "Loading…" : genId}</div>
             <div style={{ fontSize:10, color:"#64748b", marginTop:4 }}>
-              <span style={{ background:"#e0e7ff", padding:"2px 6px", borderRadius:4, fontWeight:600 }}>EB</span>
+              <span style={{ background:"#e0e7ff", padding:"2px 6px", borderRadius:4, fontWeight:600 }}>EbZ</span>
               {" — "}
-              <span style={{ background:"#e0e7ff", padding:"2px 6px", borderRadius:4, fontWeight:600 }}>{yymm}</span>
+              <span style={{ background:"#e0e7ff", padding:"2px 6px", borderRadius:4, fontWeight:600 }}>{clientId}</span>
               {" — "}
               <span style={{ background:"#e0e7ff", padding:"2px 6px", borderRadius:4, fontWeight:600 }}>{String(count).padStart(3,"0")}</span>
             </div>
           </div>
           {isDuplicate && <div style={{ fontSize:11, color:"#dc2626", marginBottom:8, fontWeight:600 }}>This ID already exists. Change the count.</div>}
-          <button style={{ ...S.primaryBtn, width:"100%", marginTop:8, opacity:isDuplicate?0.5:1 }} disabled={isDuplicate} onClick={() => {
+          <button style={{ ...S.primaryBtn, width:"100%", marginTop:8, opacity:(isDuplicate||loadingCount)?0.5:1 }} disabled={isDuplicate||loadingCount} onClick={() => {
             setData(d=>({...d, projectId: genId}));
             addMsg("user", genId);
             setTimeout(()=>goStep("lldChoice"), 100);
