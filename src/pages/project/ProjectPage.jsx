@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RESOURCE_ROLES, CHECKLIST_DEFS, TEAM_SLOTS, CL_OWNERS, canApprove, todayStr, daysLeft, fmtDate, fmtShort, ragColor, tagLabel, tagColor, getUser, initials, UNIQ, mkItem, genProdItems } from "../../lib/constants.jsx";
+import { RESOURCE_ROLES, CHECKLIST_DEFS, TEAM_SLOTS, CL_OWNERS, canApprove, todayStr, daysLeft, fmtDate, fmtShort, ragColor, tagLabel, tagColor, getUser, initials, UNIQ, mkItem, genProdItems, userCap, activeProjs } from "../../lib/constants.jsx";
 import { fetchNotifications, markNotificationsSeen, markNotificationSeenById, fetchCommunications } from "../../lib/db.js";
 import { supabase } from "../../lib/supabase.js";
 import { Btn, Inp, Sel, TA, Lbl, Card, Pill, Tag, Bar, Modal, Toast, Av, SH, Divider } from "../../components/ui/index.jsx";
@@ -335,6 +335,17 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 const updateSlot=(role,field,val)=>setTeamDraft(prev=>{const exists=prev.find(x=>x.role===role);if(exists)return prev.map(x=>x.role===role?{...x,[field]:val}:x);return [...prev,{role,userId:"",startDate:project.startDate||"",endDate:project.endDate||"",[field]:val}];});
                 const assignSlot=async(slotRole,userId)=>{
                   const member=userId?(users||[]).find(u=>u.id===userId):null;
+                  if(userId&&member){
+                    const pStart=project.startDate||"0000";
+                    const pEnd=project.endDate||"9999";
+                    const overlap=(allProjects||[]).filter(p=>p.id!==project.id&&p.teamAssignments?.some(ta=>ta.userId===userId&&(ta.startDate||"0000")<=pEnd&&(ta.endDate||"9999")>=pStart)).length;
+                    const cap=userCap(member);
+                    if(overlap>=cap){
+                      showToast(`Cannot assign ${member.name} — at full capacity (${overlap}/${cap} projects) for overlapping dates`,"var(--red)");
+                      updateSlot(slotRole,"userId","");
+                      return;
+                    }
+                  }
                   const{error:delErr}=await supabase.from("team_assignments").delete().eq("project_id",project.id).eq("role",slotRole);
                   if(delErr){showToast("Failed: "+delErr.message,"red");return;}
                   if(userId){
@@ -371,39 +382,54 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                           const roleMatch=(users||[]).filter(u=>u.name&&slot.roleKeys.includes(u.resourceRole));
                           const eligible=roleMatch.length>0?roleMatch:(users||[]).filter(u=>u.name);
                           const bgColor=slotAvatarColor(slot);
+                          const pStart=project.startDate||"0000";
+                          const pEnd=project.endDate||"9999";
+                          const getOverlap=(uid)=>{
+                            if(!uid)return 0;
+                            return (allProjects||[]).filter(p=>p.id!==project.id&&p.teamAssignments?.some(ta=>ta.userId===uid&&(ta.startDate||"0000")<=pEnd&&(ta.endDate||"9999")>=pStart)).length;
+                          };
+                          const selectedOverlap=a?.userId?getOverlap(a.userId):0;
+                          const selectedCap=a?.userId?userCap((users||[]).find(u=>u.id===a.userId)):0;
+                          const selectedAtCap=a?.userId&&selectedOverlap>=selectedCap;
                           return(
-                            <div key={slot.role} style={{padding:12,background:"#ffffff",borderRadius:10,border:m?`1px solid #e2e8f0`:"1px dashed #e2e8f0",borderLeft:m?`3px solid ${bgColor}`:"1px dashed #e2e8f0",position:"relative",opacity:!m&&!editTeam?0.6:1,transition:"opacity .15s",boxShadow:m?"0 1px 2px rgba(0,0,0,0.04)":"none"}}>
+                            <div key={slot.role} style={{padding:12,background:selectedAtCap?"#fef2f2":"#ffffff",borderRadius:10,border:selectedAtCap?"1px solid #fca5a5":m?`1px solid #e2e8f0`:"1px dashed #e2e8f0",borderLeft:selectedAtCap?"3px solid #dc2626":m?`3px solid ${bgColor}`:"1px dashed #e2e8f0",position:"relative",opacity:!m&&!editTeam?0.6:1,transition:"opacity .15s",boxShadow:m?"0 1px 2px rgba(0,0,0,0.04)":"none"}}>
                               <div style={{fontSize:10,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{slot.role}</div>
                               {editTeam?(
                                 <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                                  <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:"1px solid #e2e8f0",background:"#fff",width:"100%",maxWidth:"100%"}}>
+                                  <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:selectedAtCap?"1px solid #fca5a5":"1px solid #e2e8f0",background:selectedAtCap?"#fef2f2":"#fff",width:"100%",maxWidth:"100%"}}>
                                     <option value="">-- Select --</option>
-                                    {eligible.map(u=><option key={u.id} value={String(u.id)}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label||u.resourceRole||"Team"})</option>)}
+                                    {eligible.map(u=>{const ov=getOverlap(u.id);const cap=userCap(u);const full=ov>=cap;return <option key={u.id} value={String(u.id)}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label||u.resourceRole||"Team"}){full?` — ${ov}/${cap} AT CAPACITY`:` — ${ov}/${cap}`}</option>;})}
                                   </Sel>
+                                  {selectedAtCap&&<div style={{fontSize:10,fontWeight:700,color:"#dc2626",background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:5,padding:"4px 8px",display:"flex",alignItems:"center",gap:4}}>
+                                    <span style={{fontSize:12}}>!</span> {(users||[]).find(u=>u.id===a.userId)?.name} is at full capacity ({selectedOverlap}/{selectedCap} projects) for overlapping dates
+                                  </div>}
                                   <div style={{display:"flex",gap:4}}>
                                     <Inp type="date" value={a?.startDate||""} onChange={e=>updateSlot(slot.role,"startDate",e.target.value)} style={{padding:"3px 5px",fontSize:9,flex:1,borderRadius:5}}/>
                                     <Inp type="date" value={a?.endDate||""} onChange={e=>updateSlot(slot.role,"endDate",e.target.value)} style={{padding:"3px 5px",fontSize:9,flex:1,borderRadius:5}}/>
                                   </div>
                                 </div>
                               ):(
-                                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                  {m?(
-                                    <>
-                                      <div style={{position:"relative",flexShrink:0}}>
-                                        <div style={{width:34,height:34,borderRadius:"50%",background:bgColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:12}}>{initials(m.name)}</div>
-                                        <div style={{position:"absolute",bottom:-1,right:-1,width:10,height:10,borderRadius:"50%",background:"#16a34a",border:"2px solid #ffffff"}}/>
-                                      </div>
-                                      <div>
-                                        <div style={{fontWeight:700,fontSize:13,color:"#1e293b",lineHeight:1.2}}>{m.name}</div>
-                                        <div style={{fontSize:10,color:"#94a3b8"}}>{fmtShort(a.startDate)} - {fmtShort(a.endDate||project.endDate)}</div>
-                                      </div>
-                                    </>
-                                  ):(
-                                    <>
-                                      <div style={{width:34,height:34,borderRadius:"50%",background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",color:"#cbd5e1",fontSize:14,flexShrink:0}}>+</div>
-                                      <span style={{fontSize:12,color:"#94a3b8"}}>Unassigned</span>
-                                    </>
-                                  )}
+                                <div>
+                                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                    {m?(
+                                      <>
+                                        <div style={{position:"relative",flexShrink:0}}>
+                                          <div style={{width:34,height:34,borderRadius:"50%",background:selectedAtCap?"#dc2626":bgColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:12}}>{initials(m.name)}</div>
+                                          <div style={{position:"absolute",bottom:-1,right:-1,width:10,height:10,borderRadius:"50%",background:selectedAtCap?"#dc2626":"#16a34a",border:"2px solid #ffffff"}}/>
+                                        </div>
+                                        <div>
+                                          <div style={{fontWeight:700,fontSize:13,color:selectedAtCap?"#dc2626":"#1e293b",lineHeight:1.2}}>{m.name}</div>
+                                          <div style={{fontSize:10,color:"#94a3b8"}}>{fmtShort(a.startDate)} - {fmtShort(a.endDate||project.endDate)}</div>
+                                        </div>
+                                      </>
+                                    ):(
+                                      <>
+                                        <div style={{width:34,height:34,borderRadius:"50%",background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",color:"#cbd5e1",fontSize:14,flexShrink:0}}>+</div>
+                                        <span style={{fontSize:12,color:"#94a3b8"}}>Unassigned</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  {selectedAtCap&&!editTeam&&<div style={{fontSize:9,fontWeight:700,color:"#dc2626",marginTop:4}}>! At capacity ({selectedOverlap}/{selectedCap})</div>}
                                 </div>
                               )}
                             </div>
