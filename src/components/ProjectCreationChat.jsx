@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase.js";
 import { fetchClientsFromSheet, searchCompanyInfo, appendNewClientToDb } from "../lib/googleSheets.js";
 import {
   searchClients, ClientDbError, preloadClientDb, isClientDbConfigured,
-  clearClientDbCache, triggerSheetSync,
+  clearClientDbCache, triggerSheetSync, appendNewClient,
 } from "../lib/clientsDb.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
@@ -699,20 +699,19 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
             setData(d=>({...d, clientId: genId, _industry: indLabel, _size: sizeLabel }));
             addMsg("user", genId);
             setSaving(true);
-            // Append the new client to the public client database (cols A:C).
-            // On failure (auth missing, no edit perms, network) we still let
-            // the user proceed and surface a warning so the project flow
-            // isn't blocked on the sheet write.
-            try {
-              await appendNewClientToDb({
-                sNo: count,
-                organisationName: data.clientName,
-                clientId: genId,
-              });
-              addMsg("system", `✓ Saved ${data.clientName} to the client database (row ${count}).`);
-            } catch (err) {
-              console.warn("[clientDb] save failed:", err);
-              addMsg("system", `⚠ Client saved locally — sheet sync failed (${err.message}). Please add ${data.clientName} (${genId}) to the sheet manually.`);
+            // Insert the new client directly into Supabase (dirty=true).
+            // No Google sign-in required. The sync function preserves dirty rows.
+            const saveRes = await appendNewClient({
+              sNo: count,
+              organisationName: data.clientName,
+              clientId: genId,
+            });
+            if (saveRes.ok) {
+              setDbStatus(s => ({ ...s, rowCount: saveRes.rowCount }));
+              addMsg("system", `✓ Saved ${data.clientName} to the client database.`);
+            } else {
+              console.warn("[clientDb] save failed:", saveRes.error);
+              addMsg("system", `⚠ Failed to save to database (${saveRes.error}). Please add ${data.clientName} (${genId}) manually.`);
             }
             setSaving(false);
             setTimeout(()=>goStep("contact"), 100);

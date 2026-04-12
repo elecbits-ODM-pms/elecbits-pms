@@ -184,13 +184,16 @@ Deno.serve(async (req) => {
       return json({ error: `Upsert failed: ${upsertErr.message}`, code: upsertErr.code }, 500);
     }
 
-    // 4. Hard-delete rows whose row number is no longer in the sheet
+    // 4. Hard-delete rows whose row number is no longer in the sheet.
+    //    Preserve rows with dirty=true — those were created from the browser
+    //    and haven't been pushed to the sheet yet.
     const liveRowNumbers = clients.map(c => c.source_row_number);
     const inListLiteral = `(${liveRowNumbers.join(",")})`;
     const { data: deleted, error: delErr } = await supabase
       .from("clients")
       .delete({ count: "exact" })
       .not("source_row_number", "in", inListLiteral)
+      .eq("dirty", false)
       .select("source_row_number");
     if (delErr) {
       return json({ error: `Delete failed: ${delErr.message}`, code: delErr.code }, 500);

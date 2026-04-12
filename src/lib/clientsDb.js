@@ -167,6 +167,53 @@ export async function triggerSheetSync() {
 }
 
 /**
+ * Insert a new client into Supabase. The row is marked dirty=true so the
+ * sync-clients edge function won't delete it, and a future Phase 2 push
+ * can write it back to the Google Sheet.
+ *
+ * source_row_number is set to max+1 so it won't collide with sheet rows.
+ * Returns { ok: true, rowCount } on success, { ok: false, error } on failure.
+ */
+export async function appendNewClient({ sNo, organisationName, clientId }) {
+  if (!organisationName || !clientId) {
+    return { ok: false, error: "organisationName and clientId are required" };
+  }
+
+  try {
+    // Get the next available source_row_number
+    const { data: maxRow } = await supabase
+      .from("clients")
+      .select("source_row_number")
+      .order("source_row_number", { ascending: false })
+      .limit(1)
+      .single();
+    const nextRow = (maxRow?.source_row_number ?? 0) + 1;
+
+    const { error } = await supabase.from("clients").insert({
+      s_no: String(sNo ?? ""),
+      organisation_name: organisationName,
+      client_id: clientId,
+      source_row_number: nextRow,
+      dirty: true,
+      last_synced_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error("[clientDb] insert failed:", error);
+      return { ok: false, error: error.message };
+    }
+
+    console.log(`[clientDb] inserted new client: ${clientId} ${organisationName} (row ${nextRow})`);
+    clearClientDbCache();
+    const reload = await preloadClientDb();
+    return { ok: true, rowCount: reload.rowCount };
+  } catch (err) {
+    console.error("[clientDb] insert error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Multi-word AND substring search on organisation_name (case-insensitive).
  * Results ranked exact > prefix > substring, alphabetised within each tier,
  * capped at MAX_MATCHES.
