@@ -269,7 +269,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                     {TEAM_SLOTS.map(slot=>{
                       const a=getSlotAssignment(slot.role);
                       const m=a?.userId?getUser(a.userId,users):null;
-                      const eligible=(users||[]).filter(u=>slot.roleKeys.includes(u.resourceRole)&&(u.projectTags||[]).includes(project.projectTag||"engineering"));
+                      const eligible=(users||[]).filter(u=>u.name);
                       return(
                         <div key={slot.role} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:m?"var(--s2)":"var(--bg)",border:"1px solid var(--bdr)",borderRadius:8,marginBottom:5,opacity:!m&&!editTeam?0.4:1}}>
                           {m?<Av uid={m.id} size={28} users={users}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"var(--bdr)",border:"1px dashed var(--bdr2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"var(--txt3)",flexShrink:0}}>—</div>}
@@ -277,9 +277,9 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                             {editTeam?(
                               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                                 <div style={{fontSize:11,color:"var(--txt3)",fontWeight:500}}>{slot.label}</div>
-                                <Sel value={a?.userId||""} onChange={e=>{const v=e.target.value;updateSlot(slot.role,"userId",v?Number(v):"");assignSlot(slot.role,v?Number(v):null);}} style={{padding:"4px 6px",fontSize:11}}>
+                                <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value;updateSlot(slot.role,"userId",v?Number(v):"");assignSlot(slot.role,v?Number(v):null);}} style={{padding:"4px 6px",fontSize:11}}>
                                   <option value="">— Select {slot.role} —</option>
-                                  {eligible.map(u=><option key={u.id} value={u.id}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label})</option>)}
+                                  {eligible.map(u=><option key={u.id} value={String(u.id)}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label||u.resourceRole||"Team"})</option>)}
                                 </Sel>
                                 <div style={{display:"flex",gap:4}}>
                                   <Inp type="date" value={a?.startDate||""} onChange={e=>updateSlot(slot.role,"startDate",e.target.value)} style={{padding:"3px 5px",fontSize:10,flex:1}} placeholder="Start"/>

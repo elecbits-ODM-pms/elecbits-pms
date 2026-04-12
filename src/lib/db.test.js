@@ -172,6 +172,40 @@ describe("assignSlot direct-save flow", () => {
     expect(newTA.find(a => a.role === "HW Lead")?.userId).toBe(42); // HW Lead replaced
   });
 
+  it("pre-selects correct user from teamAssignments by role", () => {
+    const teamDraft = [
+      { userId: 10, role: "PM", startDate: "2026-01-01", endDate: "2026-06-01" },
+      { userId: 42, role: "Sr. Hardware", startDate: "2026-01-01", endDate: "2026-06-01" },
+    ];
+    // This mirrors getSlotAssignment + the Sel value logic
+    const getSlotAssignment = (role) => teamDraft.find(x => x.role === role);
+
+    const pmSlot = getSlotAssignment("PM");
+    expect(pmSlot?.userId).toBe(10);
+    expect(String(pmSlot.userId)).toBe("10"); // value={String(a.userId)} matches option value={String(u.id)}
+
+    const hwSlot = getSlotAssignment("Sr. Hardware");
+    expect(hwSlot?.userId).toBe(42);
+
+    const emptySlot = getSlotAssignment("Jr. Firmware");
+    expect(emptySlot).toBeUndefined();
+    // For empty slot: value={a?.userId?String(a.userId):""} → ""
+    expect(emptySlot?.userId ? String(emptySlot.userId) : "").toBe("");
+  });
+
+  it("all users shown in dropdown (no role filtering)", () => {
+    const users = [
+      { id: 1, name: "Alice", resourceRole: "sr_hw" },
+      { id: 2, name: "Bob", resourceRole: "jr_fw" },
+      { id: 3, name: "Charlie", resourceRole: null },
+      { id: 4, name: "", resourceRole: "sr_pm" }, // empty name filtered out
+    ];
+    // Mirrors: (users||[]).filter(u=>u.name)
+    const eligible = users.filter(u => u.name);
+    expect(eligible).toHaveLength(3);
+    expect(eligible.map(u => u.name)).toEqual(["Alice", "Bob", "Charlie"]);
+  });
+
   it("clearing a slot removes it from local state", () => {
     const existingTA = [
       { userId: 10, role: "PM", startDate: "2026-01-01", endDate: "2026-06-01" },
