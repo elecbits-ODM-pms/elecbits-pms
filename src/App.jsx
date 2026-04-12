@@ -100,8 +100,8 @@ export default function App(){
       client_name:updated.clientName||null,client_id:updated.clientId||null,product_ids:updated.productIds||[],description:updated.description||null,
     });
     if(error){console.error("updateProject error:",error.message);return;}
-    // Persist team assignments to team_assignments table (skip if already saved directly)
-    if(updated.teamAssignments&&!updated._skipTeamSync){
+    // Persist team assignments to team_assignments table
+    if(updated.teamAssignments){
       const teamRows=(updated.teamAssignments||[]).filter(a=>a.userId||a.user_id).map(a=>({
         project_id:updated.id,
         user_id:a.userId||a.user_id,
@@ -112,8 +112,7 @@ export default function App(){
       const{error:te}=await replaceTeamAssignments(updated.id,teamRows);
       if(te)console.error("Team assignment update error:",te.message);
     }
-    const{_skipTeamSync,...clean}=updated;
-    const stamped={...clean,updatedAt:new Date().toISOString()};
+    const stamped={...updated,updatedAt:new Date().toISOString()};
     setProjectsState(ps=>ps.map(p=>p.id===stamped.id?stamped:p));
     setOpenedProject(stamped);
   };

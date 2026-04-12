@@ -250,15 +250,16 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                   const member=userId?(users||[]).find(u=>u.id===userId):null;
                   if(!userId){
                     const{error}=await supabase.from("team_assignments").delete().eq("project_id",project.id).eq("role",slotRole);
-                    if(error){console.error("delete assignment error:",error.message);return;}
+                    if(error){showToast("Failed to unassign: "+error.message,"red");return;}
                   }else{
                     const{error}=await supabase.from("team_assignments").upsert({project_id:project.id,user_id:Number(userId),role:slotRole,start_date:project.startDate||null,end_date:project.endDate||null},{onConflict:"project_id,role"});
-                    if(error){console.error("upsert assignment error:",error.message);return;}
+                    if(error){showToast("Failed to assign: "+error.message,"red");return;}
                   }
                   const newTA=(project.teamAssignments||[]).filter(a=>a.role!==slotRole);
                   if(userId)newTA.push({userId:Number(userId),role:slotRole,startDate:project.startDate||"",endDate:project.endDate||""});
+                  const stamped={...project,teamAssignments:newTA,updatedAt:new Date().toISOString()};
                   setTeamDraft(newTA);
-                  upd({...project,teamAssignments:newTA,_skipTeamSync:true});
+                  setProjects(prev=>prev.map(p=>p.id===stamped.id?stamped:p));
                   showToast(member?`${member.name} assigned as ${slotRole} ✓`:`${slotRole} unassigned ✓`,"var(--green)");
                 };
                 return(

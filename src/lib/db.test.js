@@ -102,16 +102,14 @@ describe("updateProject calls team assignment persistence", () => {
 describe("assignSlot direct-save flow", () => {
   /*
    * These tests simulate what ProjectPage.assignSlot does:
-   *   1. Upsert/delete directly to team_assignments
-   *   2. Call updateProject with _skipTeamSync to update local state
-   *      WITHOUT triggering replaceTeamAssignments again
+   *   1. Upsert/delete directly to team_assignments (bypasses updateProject entirely)
+   *   2. Update local state via setProjects
    */
 
   it("upsert writes correct row to team_assignments", async () => {
     const upsertChain = chainMock({ data: [{ id: 1 }], error: null });
     mockFrom.mockReturnValue(upsertChain);
 
-    // Simulate what assignSlot does for a selection
     const row = {
       project_id: "abc-123",
       user_id: 42,
@@ -130,7 +128,6 @@ describe("assignSlot direct-save flow", () => {
     const deleteChain = chainMock({ data: null, error: null });
     mockFrom.mockReturnValue(deleteChain);
 
-    // Simulate what assignSlot does when userId is empty
     await supabase.from("team_assignments").delete().eq("project_id", "abc-123").eq("role", "HW Lead");
 
     expect(mockFrom).toHaveBeenCalledWith("team_assignments");
@@ -139,83 +136,55 @@ describe("assignSlot direct-save flow", () => {
     expect(deleteChain.eq).toHaveBeenCalledWith("role", "HW Lead");
   });
 
-  it("_skipTeamSync flag prevents replaceTeamAssignments from running", async () => {
-    // This tests the App.jsx updateProject logic:
-    // when _skipTeamSync is true, replaceTeamAssignments should NOT be called.
-    //
-    // We test this indirectly: if replaceTeamAssignments ran, it would call
-    // from("team_assignments").delete() — so we assert that doesn't happen
-    // after the initial projects update.
+  it("assignSlot does NOT touch the projects table at all", async () => {
+    // assignSlot only writes to team_assignments, then updates local state
+    // via setProjects — it never calls updateProjectInDB.
+    const upsertChain = chainMock({ data: [{ id: 1 }], error: null });
+    mockFrom.mockReset();
+    mockFrom.mockReturnValue(upsertChain);
 
-    const projectUpdateChain = chainMock({ data: null, error: null });
-    mockFrom.mockReturnValue(projectUpdateChain);
+    await supabase.from("team_assignments").upsert(
+      { project_id: "abc-123", user_id: 42, role: "HW Lead", start_date: null, end_date: null },
+      { onConflict: "project_id,role" }
+    );
 
-    const { updateProjectInDB } = await import("./db.js");
-
-    // Simulate what updateProject does: first updateProjectInDB, then conditionally replaceTeamAssignments
-    const updated = {
-      id: "abc-123",
-      name: "Test Project",
-      teamAssignments: [{ userId: 42, role: "HW Lead", startDate: "2026-01-01", endDate: "2026-06-01" }],
-      _skipTeamSync: true,
-    };
-
-    await updateProjectInDB(updated.id, { name: updated.name });
-
-    // Verify projects table was updated
-    expect(mockFrom).toHaveBeenCalledWith("projects");
-    const callCountAfterUpdate = mockFrom.mock.calls.length;
-
-    // Now simulate the conditional: if _skipTeamSync, do NOT call replaceTeamAssignments
-    if (updated.teamAssignments && !updated._skipTeamSync) {
-      // This block should NOT execute
-      await import("./db.js").then(db => db.replaceTeamAssignments(updated.id, []));
-    }
-
-    // from() should not have been called again — replaceTeamAssignments was skipped
-    expect(mockFrom.mock.calls.length).toBe(callCountAfterUpdate);
+    // Only team_assignments was touched — never "projects"
+    const tablesCalled = mockFrom.mock.calls.map(c => c[0]);
+    expect(tablesCalled).toEqual(["team_assignments"]);
+    expect(tablesCalled).not.toContain("projects");
   });
 
-  it("without _skipTeamSync, replaceTeamAssignments DOES run", async () => {
-    const deleteChain = chainMock({ data: null, error: null });
-    const insertChain = chainMock({ data: [{ id: 1 }], error: null });
-    const projectUpdateChain = chainMock({ data: null, error: null });
+  it("assignSlot builds correct local state after upsert", () => {
+    // Simulate the local state update that assignSlot does after DB write
+    const existingTA = [
+      { userId: 10, role: "PM", startDate: "2026-01-01", endDate: "2026-06-01" },
+      { userId: 20, role: "HW Lead", startDate: "2026-01-01", endDate: "2026-06-01" },
+    ];
+    const slotRole = "HW Lead";
+    const newUserId = 42;
 
-    let fromCallCount = 0;
-    mockFrom.mockImplementation((table) => {
-      fromCallCount++;
-      if (table === "projects") return projectUpdateChain;
-      // team_assignments: first call = delete, second = insert
-      if (fromCallCount <= 2) return deleteChain;
-      return insertChain;
-    });
+    // This mirrors assignSlot's local state logic
+    const newTA = existingTA.filter(a => a.role !== slotRole);
+    if (newUserId) newTA.push({ userId: newUserId, role: slotRole, startDate: "2026-01-01", endDate: "2026-06-01" });
 
-    const { updateProjectInDB, replaceTeamAssignments } = await import("./db.js");
+    expect(newTA).toHaveLength(2);
+    expect(newTA.find(a => a.role === "PM")?.userId).toBe(10); // PM untouched
+    expect(newTA.find(a => a.role === "HW Lead")?.userId).toBe(42); // HW Lead replaced
+  });
 
-    const updated = {
-      id: "abc-123",
-      name: "Test Project",
-      teamAssignments: [{ userId: 42, role: "HW Lead", startDate: "2026-01-01", endDate: "2026-06-01" }],
-      // no _skipTeamSync
-    };
+  it("clearing a slot removes it from local state", () => {
+    const existingTA = [
+      { userId: 10, role: "PM", startDate: "2026-01-01", endDate: "2026-06-01" },
+      { userId: 20, role: "HW Lead", startDate: "2026-01-01", endDate: "2026-06-01" },
+    ];
+    const slotRole = "HW Lead";
+    const newUserId = null;
 
-    await updateProjectInDB(updated.id, { name: updated.name });
+    const newTA = existingTA.filter(a => a.role !== slotRole);
+    if (newUserId) newTA.push({ userId: newUserId, role: slotRole, startDate: "", endDate: "" });
 
-    // Simulate the conditional without _skipTeamSync — replaceTeamAssignments SHOULD run
-    if (updated.teamAssignments && !updated._skipTeamSync) {
-      const rows = updated.teamAssignments.map(a => ({
-        project_id: updated.id,
-        user_id: a.userId,
-        role: a.role,
-        start_date: a.startDate,
-        end_date: a.endDate,
-      }));
-      await replaceTeamAssignments(updated.id, rows);
-    }
-
-    // from() should have been called for projects + team_assignments delete + team_assignments insert
-    expect(mockFrom).toHaveBeenCalledWith("team_assignments");
-    expect(deleteChain.delete).toHaveBeenCalled();
-    expect(insertChain.insert).toHaveBeenCalled();
+    expect(newTA).toHaveLength(1);
+    expect(newTA[0].role).toBe("PM");
+    expect(newTA.find(a => a.role === "HW Lead")).toBeUndefined();
   });
 });
