@@ -733,10 +733,28 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     // next ID continues the sequence instead of restarting at 001.
     const [count, setCount] = useState(() => Math.max(1, (dbStatus.rowCount || 0) + 1));
     const [saving, setSaving] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const genId = `Eb-${industry}-${orgSize}-${String(count).padStart(3,"0")}`;
+
+    const refreshCount = async () => {
+      setRefreshing(true);
+      const res = await preloadClientDb();
+      if (res.ok) {
+        setDbStatus(s => ({ ...s, rowCount: res.rowCount }));
+        setCount(Math.max(1, (res.rowCount || 0) + 1));
+      }
+      setRefreshing(false);
+    };
+
     return (
       <div style={S.widget}>
-        <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569" }}>Client ID Generator</div>
+        <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <span>Client ID Generator</span>
+          <button onClick={refreshCount} disabled={refreshing || saving} style={{ background:"none", border:"1px solid #cbd5e1", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:600, color:"#475569", cursor: (refreshing || saving) ? "not-allowed" : "pointer", opacity: (refreshing || saving) ? 0.5 : 1, display:"flex", alignItems:"center", gap:4 }}
+            title="Re-fetch client count from database">
+            {refreshing ? "..." : "\u21BB"} Refresh
+          </button>
+        </div>
         <div style={S.widgetInner}>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
             <div>
