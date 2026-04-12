@@ -18,7 +18,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SHEET_ID   = Deno.env.get("PROJECT_SHEET_ID")   ?? "1sdDqs4b_HlN4MQYl1VKD_04ZN6u8QJ2ZtAUX3pnlrsw";
-const SHEET_NAME = Deno.env.get("PROJECT_SHEET_NAME") ?? "Sheet1";
+const SHEET_NAME = Deno.env.get("PROJECT_SHEET_NAME") ?? "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -187,7 +187,9 @@ Deno.serve(async (req) => {
     ]);
 
     // 4. Append to Google Sheet via Sheets API v4
-    const range = encodeURIComponent(`'${SHEET_NAME}'!A:X`);
+    //    Use SHEET_NAME if set, otherwise omit sheet prefix (defaults to first tab)
+    const rawRange = SHEET_NAME ? `'${SHEET_NAME}'!A:X` : "A:X";
+    const range = encodeURIComponent(rawRange);
     const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
 
     const appendRes = await fetch(appendUrl, {
