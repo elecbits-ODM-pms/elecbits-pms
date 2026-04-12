@@ -221,10 +221,27 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 const assignedUserIds=(project.teamAssignments||[]).map(a=>a.userId).filter(Boolean);
                 const eligibleTMs=(users||[]).filter(u=>assignedUserIds.includes(u.id));
                 return(
-                  <div style={{padding:"10px 14px",background:"var(--coral)08",border:"1px solid var(--coral)25",borderRadius:9,marginBottom:12}}>
-                    <div style={{fontSize:12,fontWeight:500,color:"var(--coral)",textTransform:"uppercase",marginBottom:8,letterSpacing:"0.04em"}}>⭐ Technical Manager (TM)</div>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                      {currentTMUser?<><Av uid={currentTMUser.id} size={26} users={users}/><span style={{fontSize:12,fontWeight:700,color:"var(--txt)"}}>{currentTMUser.name}</span><Pill label="Current TM" color="var(--coral)" small/></>:<span style={{fontSize:11,color:"var(--txt3)"}}>No TM assigned yet</span>}
+                  <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
+                      <span style={{fontSize:16}}>&#9733;</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Technical Manager</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"10px 14px",background:"#f8fafc",borderRadius:10}}>
+                      {currentTMUser?(
+                        <>
+                          <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#ea580c,#f97316)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:15,flexShrink:0}}>{initials(currentTMUser.name)}</div>
+                          <div style={{flex:1}}>
+                            <div style={{fontWeight:700,fontSize:14,color:"var(--txt)"}}>{currentTMUser.name}</div>
+                            <div style={{fontSize:11,color:"var(--txt2)"}}>Technical Manager</div>
+                          </div>
+                          <span style={{padding:"3px 10px",borderRadius:99,background:"#16a34a18",color:"#16a34a",fontSize:10,fontWeight:700,border:"1px solid #16a34a30"}}>Current TM</span>
+                        </>
+                      ):(
+                        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+                          <div style={{width:44,height:44,borderRadius:"50%",background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontSize:18,flexShrink:0}}>?</div>
+                          <span style={{fontSize:13,color:"#94a3b8",fontWeight:500}}>No TM assigned yet</span>
+                        </div>
+                      )}
                     </div>
                     <Sel defaultValue="" onChange={e=>{
                       if(!e.target.value)return;
@@ -233,73 +250,184 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                       const newTA=(project.teamAssignments||[]).filter(a=>a.role!=="Senior PM");
                       newTA.unshift({userId:selectedUser.id,role:"Senior PM",startDate:project.startDate||"",endDate:project.endDate||""});
                       upd({...project,teamAssignments:newTA});
-                      showToast(`${selectedUser.name} set as TM ✓`,"var(--coral)");
+                      showToast(`${selectedUser.name} set as TM`,"var(--green)");
                       e.target.value="";
-                    }} style={{width:"100%",fontSize:11,padding:"5px 8px"}}>
-                      <option value="">Change TM from assigned resources…</option>
+                    }} style={{width:"100%",fontSize:11,padding:"7px 10px",borderRadius:8,border:"1px solid #e2e8f0",background:"#fff"}}>
+                      <option value="">Change TM from assigned resources...</option>
                       {eligibleTMs.map(u=>{const aRole=(project.teamAssignments||[]).find(a=>a.userId===u.id)?.role||"Team";return <option key={u.id} value={u.id}>{u.name} ({aRole})</option>;})}
                     </Sel>
                   </div>
                 );
               })()}
               {(()=>{
-                const saveTeam=()=>{upd({...project,teamAssignments:teamDraft});setEditTeam(false);showToast("Team updated ✓","var(--green)");};
+                const saveTeam=()=>{upd({...project,teamAssignments:teamDraft});setEditTeam(false);showToast("Team updated","var(--green)");};
                 const getSlotAssignment=(role)=>teamDraft.find(x=>x.role===role);
                 const updateSlot=(role,field,val)=>setTeamDraft(prev=>{const exists=prev.find(x=>x.role===role);if(exists)return prev.map(x=>x.role===role?{...x,[field]:val}:x);return [...prev,{role,userId:"",startDate:project.startDate||"",endDate:project.endDate||"",[field]:val}];});
                 const assignSlot=async(slotRole,userId)=>{
                   const member=userId?(users||[]).find(u=>u.id===userId):null;
-                  // Always delete existing row for this role first
                   const{error:delErr}=await supabase.from("team_assignments").delete().eq("project_id",project.id).eq("role",slotRole);
                   if(delErr){showToast("Failed: "+delErr.message,"red");return;}
-                  // Insert new row if a user was selected
                   if(userId){
-                    const{error:insErr}=await supabase.from("team_assignments").insert({project_id:project.id,user_id:Number(userId),role:slotRole,start_date:project.startDate||null,end_date:project.endDate||null});
+                    const{error:insErr}=await supabase.from("team_assignments").insert({project_id:project.id,user_id:userId,role:slotRole,start_date:project.startDate||null,end_date:project.endDate||null});
                     if(insErr){showToast("Failed: "+insErr.message,"red");return;}
                   }
                   const newTA=(project.teamAssignments||[]).filter(a=>a.role!==slotRole);
-                  if(userId)newTA.push({userId:Number(userId),role:slotRole,startDate:project.startDate||"",endDate:project.endDate||""});
+                  if(userId)newTA.push({userId,role:slotRole,startDate:project.startDate||"",endDate:project.endDate||""});
                   const stamped={...project,teamAssignments:newTA,updatedAt:new Date().toISOString()};
                   setTeamDraft(newTA);
                   setProjects(prev=>prev.map(p=>p.id===stamped.id?stamped:p));
-                  showToast(member?`${member.name} assigned as ${slotRole} ✓`:`${slotRole} unassigned ✓`,"var(--green)");
+                  showToast(member?`${member.name} assigned as ${slotRole}`:`${slotRole} unassigned`,"var(--green)");
+                };
+                const slotAvatarColor=(slot)=>{
+                  if(["Senior PM","PM"].includes(slot.role))return "#6366f1";
+                  if(["Sr. Hardware","Jr. Hardware"].includes(slot.role))return "#2563eb";
+                  if(["Sr. Firmware","Jr. Firmware"].includes(slot.role))return "#16a34a";
+                  return "#64748b";
                 };
                 return(
                   <>
-                    <SH title="Team & Dates" action={isPM&&<Btn v="ghost" style={{fontSize:10,padding:"3px 9px"}} onClick={()=>{setTeamDraft(project.teamAssignments||[]);setEditTeam(!editTeam);}}>{editTeam?"Cancel":"✏ Edit Team"}</Btn>}/>
-                    <div style={{fontSize:11,color:"var(--txt3)",marginBottom:8}}>Role slots are fixed — you can only assign someone with the matching designation.</div>
-                    {TEAM_SLOTS.map(slot=>{
-                      const a=getSlotAssignment(slot.role);
-                      const m=a?.userId?getUser(a.userId,users):null;
-                      const roleMatch=(users||[]).filter(u=>u.name&&slot.roleKeys.includes(u.resourceRole));
-                      const eligible=roleMatch.length>0?roleMatch:(users||[]).filter(u=>u.name);
-                      return(
-                        <div key={slot.role} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:m?"var(--s2)":"var(--bg)",border:"1px solid var(--bdr)",borderRadius:8,marginBottom:5,opacity:!m&&!editTeam?0.4:1}}>
-                          {m?<Av uid={m.id} size={28} users={users}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"var(--bdr)",border:"1px dashed var(--bdr2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"var(--txt3)",flexShrink:0}}>—</div>}
-                          <div style={{flex:1}}>
-                            {editTeam?(
-                              <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                                <div style={{fontSize:11,color:"var(--txt3)",fontWeight:500}}>{slot.label}</div>
-                                <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value;updateSlot(slot.role,"userId",v?Number(v):"");assignSlot(slot.role,v?Number(v):null);}} style={{padding:"4px 6px",fontSize:11}}>
-                                  <option value="">— Select {slot.role} —</option>
-                                  {eligible.map(u=><option key={u.id} value={String(u.id)}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label||u.resourceRole||"Team"})</option>)}
-                                </Sel>
-                                <div style={{display:"flex",gap:4}}>
-                                  <Inp type="date" value={a?.startDate||""} onChange={e=>updateSlot(slot.role,"startDate",e.target.value)} style={{padding:"3px 5px",fontSize:10,flex:1}} placeholder="Start"/>
-                                  <Inp type="date" value={a?.endDate||""} onChange={e=>updateSlot(slot.role,"endDate",e.target.value)} style={{padding:"3px 5px",fontSize:10,flex:1}} placeholder="End"/>
+                    <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Team Roster</span>
+                          <span style={{padding:"2px 8px",borderRadius:99,background:"#6366f118",color:"#6366f1",fontSize:10,fontWeight:700}}>{(project.teamAssignments||[]).filter(a=>a.userId).length} assigned</span>
+                        </div>
+                        {isPM&&<Btn v="ghost" style={{fontSize:10,padding:"4px 10px",borderRadius:6}} onClick={()=>{setTeamDraft(project.teamAssignments||[]);setEditTeam(!editTeam);}}>{editTeam?"Cancel":"Edit Team"}</Btn>}
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                        {TEAM_SLOTS.map(slot=>{
+                          const a=getSlotAssignment(slot.role);
+                          const m=a?.userId?getUser(a.userId,users):null;
+                          const roleMatch=(users||[]).filter(u=>u.name&&slot.roleKeys.includes(u.resourceRole));
+                          const eligible=roleMatch.length>0?roleMatch:(users||[]).filter(u=>u.name);
+                          const bgColor=slotAvatarColor(slot);
+                          return(
+                            <div key={slot.role} style={{padding:12,background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",position:"relative",opacity:!m&&!editTeam?0.45:1,transition:"opacity .15s"}}>
+                              <div style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{slot.role}</div>
+                              {editTeam?(
+                                <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                                  <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:"1px solid #e2e8f0",background:"#fff"}}>
+                                    <option value="">-- Select --</option>
+                                    {eligible.map(u=><option key={u.id} value={String(u.id)}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label||u.resourceRole||"Team"})</option>)}
+                                  </Sel>
+                                  <div style={{display:"flex",gap:4}}>
+                                    <Inp type="date" value={a?.startDate||""} onChange={e=>updateSlot(slot.role,"startDate",e.target.value)} style={{padding:"3px 5px",fontSize:9,flex:1,borderRadius:5}}/>
+                                    <Inp type="date" value={a?.endDate||""} onChange={e=>updateSlot(slot.role,"endDate",e.target.value)} style={{padding:"3px 5px",fontSize:9,flex:1,borderRadius:5}}/>
+                                  </div>
                                 </div>
-                              </div>
-                            ):(
-                              <>
-                                <div style={{fontWeight:700,fontSize:12,color:m?"var(--txt)":"var(--txt3)"}}>{m?m.name:"Unassigned"}</div>
-                                <div style={{fontSize:10,color:"var(--txt3)"}}>{slot.label}</div>
-                              </>
-                            )}
+                              ):(
+                                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                  {m?(
+                                    <>
+                                      <div style={{position:"relative",flexShrink:0}}>
+                                        <div style={{width:34,height:34,borderRadius:"50%",background:bgColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:12}}>{initials(m.name)}</div>
+                                        <div style={{position:"absolute",bottom:-1,right:-1,width:10,height:10,borderRadius:"50%",background:"#16a34a",border:"2px solid #f8fafc"}}/>
+                                      </div>
+                                      <div>
+                                        <div style={{fontWeight:700,fontSize:13,color:"var(--txt)",lineHeight:1.2}}>{m.name}</div>
+                                        <div style={{fontSize:10,color:"#94a3b8"}}>{fmtShort(a.startDate)} - {fmtShort(a.endDate||project.endDate)}</div>
+                                      </div>
+                                    </>
+                                  ):(
+                                    <>
+                                      <div style={{width:34,height:34,borderRadius:"50%",background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontSize:14,flexShrink:0}}>-</div>
+                                      <span style={{fontSize:12,color:"#94a3b8",fontStyle:"italic"}}>Unassigned</span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {editTeam&&<div style={{display:"flex",gap:8,marginTop:12,justifyContent:"flex-end"}}><Btn v="secondary" style={{fontSize:11,borderRadius:7}} onClick={()=>setEditTeam(false)}>Cancel</Btn><Btn v="success" style={{fontSize:11,borderRadius:7}} onClick={saveTeam}>Save Team</Btn></div>}
+                    </div>
+
+                    {(()=>{
+                      const allCLs={...(project.checklists||{}),...(project.customChecklists||{})};
+                      const gates=[
+                        {label:"TM Approval",key:"tmApproval",icon:"T"},
+                        {label:"PM Approval",key:"pmApproval",icon:"P"},
+                        {label:"Client Approval",key:"clientApproval",icon:"C"},
+                        {label:"Final Sanction",key:"sanction",icon:"S"},
+                      ];
+                      let totalApproved=0,totalPending=0,totalUpcoming=0;
+                      const allItems=Object.values(allCLs).flatMap(cl=>Array.isArray(cl)?cl.flatMap(c=>(c.items||[])):(cl.items||[]));
+                      const totalItems=allItems.length||1;
+                      gates.forEach(g=>{
+                        if(g.key==="sanction"){
+                          if(project.sanctioned)totalApproved++;else if(project.pendingSanction)totalPending++;else totalUpcoming++;
+                        } else {
+                          const approved=allItems.filter(it=>it[g.key]==="Approved").length;
+                          const pct=totalItems?approved/totalItems:0;
+                          if(pct>=0.8)totalApproved++;else if(pct>0)totalPending++;else totalUpcoming++;
+                        }
+                      });
+                      return(
+                        <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
+                            <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Approval Gates</span>
+                            <span style={{fontSize:10,color:"#64748b"}}>{totalApproved} approved · {totalPending} pending · {totalUpcoming} upcoming</span>
                           </div>
-                          {!editTeam&&a?.userId&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"var(--acc)"}}>{fmtShort(a.startDate)} → {fmtShort(a.endDate||project.endDate)}</div></div>}
+                          {gates.map(g=>{
+                            let status="upcoming",detail="";
+                            if(g.key==="sanction"){
+                              if(project.sanctioned){status="approved";detail=fmtShort(project.sanctionedAt);}
+                              else if(project.pendingSanction){status="pending";detail="Awaiting approval";}
+                              else{detail="Not submitted";}
+                            } else {
+                              const approved=allItems.filter(it=>it[g.key]==="Approved").length;
+                              const pct=totalItems?Math.round((approved/totalItems)*100):0;
+                              if(pct>=80){status="approved";detail=`${pct}% approved`;}
+                              else if(pct>0){status="pending";detail=`${pct}% approved`;}
+                              else{detail="Not started";}
+                            }
+                            const colors={approved:"#16a34a",pending:"#d97706",upcoming:"#94a3b8"};
+                            const icons={approved:"\u2713",pending:"!",upcoming:"\u2022"};
+                            return(
+                              <div key={g.key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid #f1f5f9"}}>
+                                <div style={{width:24,height:24,borderRadius:"50%",background:colors[status]+"18",border:`1.5px solid ${colors[status]}`,display:"flex",alignItems:"center",justifyContent:"center",color:colors[status],fontSize:11,fontWeight:800,flexShrink:0}}>{icons[status]}</div>
+                                <div style={{flex:1}}>
+                                  <div style={{fontWeight:600,fontSize:12,color:"var(--txt)"}}>{g.label}</div>
+                                </div>
+                                <span style={{fontSize:10,color:colors[status],fontWeight:600}}>{detail}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
-                    })}
-                    {editTeam&&<div style={{display:"flex",gap:8,marginTop:10,justifyContent:"flex-end"}}><Btn v="secondary" style={{fontSize:11}} onClick={()=>setEditTeam(false)}>Cancel</Btn><Btn v="success" style={{fontSize:11}} onClick={saveTeam}>💾 Save Team</Btn></div>}
+                    })()}
+
+                    {(()=>{
+                      const start=project.startDate?new Date(project.startDate):null;
+                      const end=project.endDate?new Date(project.endDate):null;
+                      const now=new Date();
+                      if(!start||!end)return null;
+                      const totalDays=Math.max(1,Math.ceil((end-start)/86400000));
+                      const elapsed=Math.ceil((now-start)/86400000);
+                      const pct=Math.min(100,Math.max(0,Math.round((elapsed/totalDays)*100)));
+                      const remaining=Math.ceil((end-now)/86400000);
+                      const overdue=remaining<0;
+                      const todayPct=Math.min(100,Math.max(0,Math.round((elapsed/totalDays)*100)));
+                      return(
+                        <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
+                          <div style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10}}>Stage-wise Timeline</div>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                            <span style={{fontSize:11,color:"#64748b",fontWeight:600}}>{fmtShort(project.startDate)}</span>
+                            <span style={{fontSize:12,fontWeight:800,color:overdue?"#dc2626":remaining<=14?"#d97706":"#16a34a"}}>{overdue?`OVERDUE by ${Math.abs(remaining)}d`:`${remaining}d remaining`}</span>
+                            <span style={{fontSize:11,color:"#64748b",fontWeight:600}}>{fmtShort(project.endDate)}</span>
+                          </div>
+                          <div style={{position:"relative",height:10,background:"#e2e8f0",borderRadius:99,overflow:"hidden"}}>
+                            <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${pct}%`,background:overdue?"linear-gradient(90deg,#dc2626,#f87171)":pct>75?"linear-gradient(90deg,#d97706,#fbbf24)":"linear-gradient(90deg,#6366f1,#818cf8)",borderRadius:99,transition:"width .3s"}}/>
+                            <div style={{position:"absolute",top:-3,left:`${todayPct}%`,width:2,height:16,background:"#dc2626",borderRadius:1,transform:"translateX(-1px)"}}/>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
+                            <span style={{fontSize:10,color:"#94a3b8"}}>{pct}% elapsed</span>
+                            <span style={{fontSize:10,color:"#94a3b8"}}>{totalDays} total days</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </>
                 );
               })()}
