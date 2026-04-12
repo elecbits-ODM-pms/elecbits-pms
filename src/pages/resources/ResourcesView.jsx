@@ -139,13 +139,14 @@ const ResourcesView=({projects,users,setUsers,isAdmin,currentUser})=>{
           <table>
             <thead><tr>
               <th>Name</th><th>Role</th><th>Dept</th><th>Skills / Tags</th>
-              <th>Active Projects</th><th>Holidays</th>
+              <th>Projects</th><th>Holidays</th>
               <th style={{width:70}}>Cap</th>
               <th>Status</th>
               {isAdmin&&<th style={{width:90}}>Actions</th>}
             </tr></thead>
             <tbody>{filtered.map(m=>{
               const ri=RESOURCE_ROLES.find(r=>r.key===m.resourceRole);
+              const allAssigned=projects.filter(p=>p.teamAssignments?.some(a=>a.userId===m.id));
               const active=activeProjs(m.id,projects);const cap=userCap(m);const over=active.length>=cap;
               const mHols=m.holidays||[];
               const mPending=mHols.filter(h=>h.status==="pending");
@@ -169,7 +170,7 @@ const ResourcesView=({projects,users,setUsers,isAdmin,currentUser})=>{
                         })}
                       </div>
                     </td>
-                    <td style={{fontSize:10,color:"var(--txt3)"}}>{active.length} project{active.length!==1?"s":""}</td>
+                    <td style={{fontSize:10,color:"var(--txt3)"}}>{allAssigned.length} project{allAssigned.length!==1?"s":""}{active.length<allAssigned.length&&` (${active.length} active)`}</td>
                     <td style={{fontSize:10}}>{mPending.length>0&&<div style={{color:"var(--amber)"}}>⏳ {mPending.length}</div>}{mApproved.length>0&&<div style={{color:"var(--green)"}}>✓ {mApproved.length}</div>}</td>
                     <td><input type="number" min="1" max="10" value={editDraft.maxProjects??cap} onChange={e=>setEditDraft(d=>({...d,maxProjects:Number(e.target.value)}))} style={{width:44,background:"var(--bg)",border:"1px solid var(--acc)",borderRadius:4,color:"var(--acc)",padding:"3px 5px",fontSize:12,textAlign:"center",outline:"none",fontFamily:"IBM Plex Mono",fontWeight:700}}/></td>
                     <td><Pill label={over?"At Cap":active.length?"Deployed":"Available"} color={over?"var(--red)":active.length?"var(--amber)":"var(--green)"} small/></td>
@@ -198,7 +199,7 @@ const ResourcesView=({projects,users,setUsers,isAdmin,currentUser})=>{
                   {(m.projectTags||[]).map(t=>{const colors={engineering:"var(--blue)",elecbits_product:"var(--green)",modifier:"var(--purple)"};const labels={engineering:"Engineering",elecbits_product:"EB Product",modifier:"Modifier"};return <span key={t} style={{padding:"1px 6px",borderRadius:3,fontSize:9,fontWeight:700,background:(colors[t]||"var(--acc)")+"18",color:colors[t]||"var(--acc)",border:"1px solid "+(colors[t]||"var(--acc)")+"40"}}>{labels[t]||t}</span>;})}
                   {!(m.projectTags||[]).length&&<span style={{fontSize:10,color:"var(--txt3)"}}>—</span>}
                 </div></td>
-                <td>{active.length>0?active.map(p=>{const a=p.teamAssignments?.find(x=>x.userId===m.id);return(<div key={p.id} style={{marginBottom:3}}><span style={{fontSize:11,fontWeight:600}}>{p.name}</span><span style={{fontSize:10,color:"var(--txt3)",marginLeft:5,fontFamily:"IBM Plex Mono"}}>{fmtShort(a?.startDate)}–{fmtShort(a?.endDate||p.endDate)}</span></div>)}):<span style={{fontSize:11,color:"var(--txt3)"}}>None</span>}</td>
+                <td>{allAssigned.length>0?allAssigned.map(p=>{const a=p.teamAssignments?.find(x=>x.userId===m.id);const isActive=active.some(ap=>ap.id===p.id);return(<div key={p.id} style={{marginBottom:3,opacity:isActive?1:0.55}}><span style={{fontSize:11,fontWeight:600}}>{p.name}</span>{!isActive&&<span style={{fontSize:9,color:"var(--txt3)",marginLeft:4}}>(ended)</span>}<span style={{fontSize:10,color:"var(--txt3)",marginLeft:5,fontFamily:"IBM Plex Mono"}}>{fmtShort(a?.startDate)}–{fmtShort(a?.endDate||p.endDate)}</span></div>)}):<span style={{fontSize:11,color:"var(--txt3)"}}>None</span>}</td>
                 <td style={{fontSize:10}}>{mPending.length>0&&<div style={{color:"var(--amber)",marginBottom:2}}>⏳ {mPending.length} pending</div>}{mApproved.length>0&&<div style={{color:"var(--green)"}}>✓ {mApproved.length} approved</div>}{mPending.length===0&&mApproved.length===0&&<span style={{color:"var(--txt3)"}}>—</span>}</td>
                 <td style={{textAlign:"center",fontFamily:"IBM Plex Mono",color:over?"var(--red)":"var(--green)",fontWeight:700}}>{active.length}/{cap}</td>
                 <td><Pill label={over?"At Capacity":active.length?"Deployed":"Available"} color={over?"var(--red)":active.length?"var(--amber)":"var(--green)"} small/></td>
