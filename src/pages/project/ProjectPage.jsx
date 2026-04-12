@@ -50,6 +50,8 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
   const [teamDraft,setTeamDraft]=useState(project.teamAssignments||[]);
   const [editSheet,setEditSheet]=useState(false);
   const [sheetDraft,setSheetDraft]=useState({projectId:project.projectId,clientName:project.clientName||"",clientId:project.clientId||"",projectTag:project.projectTag,productIds:project.productIds||[project.productId||""]});
+  const [editTimeline,setEditTimeline]=useState(false);
+  const [timelineDraft,setTimelineDraft]=useState({startDate:project.startDate||"",endDate:project.endDate||""});
   const [showReminder,setShowReminder]=useState(false);
   const [showNotifs,setShowNotifs]=useState(false);
   const [toast,setToast]=useState(null);
@@ -171,10 +173,10 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                     {editSheet?(
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                          <div><Lbl>Project ID</Lbl><Inp value={sheetDraft.projectId} onChange={e=>setSheetDraft(d=>({...d,projectId:e.target.value}))}/></div>
+                          <div><Lbl>Project ID</Lbl><Inp value={sheetDraft.projectId} disabled style={{opacity:0.5,cursor:"not-allowed"}}/></div>
                           <div><Lbl>Project Type</Lbl><Sel value={sheetDraft.projectTag} onChange={e=>setSheetDraft(d=>({...d,projectTag:e.target.value}))}>{[{key:"engineering",label:"Engineering Project"},{key:"elecbits_product",label:"Elecbits Product"},{key:"modifier",label:"Modifier"}].map(t=><option key={t.key} value={t.key}>{t.label}</option>)}</Sel></div>
-                          <div><Lbl>Client Name</Lbl><Inp value={sheetDraft.clientName} onChange={e=>setSheetDraft(d=>({...d,clientName:e.target.value}))}/></div>
-                          <div><Lbl>Client ID</Lbl><Inp value={sheetDraft.clientId} onChange={e=>setSheetDraft(d=>({...d,clientId:e.target.value}))}/></div>
+                          <div><Lbl>Client Name</Lbl><Inp value={sheetDraft.clientName} disabled style={{opacity:0.5,cursor:"not-allowed"}}/></div>
+                          <div><Lbl>Client ID</Lbl><Inp value={sheetDraft.clientId} disabled style={{opacity:0.5,cursor:"not-allowed"}}/></div>
                         </div>
                         <div>
                           <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><Lbl style={{marginBottom:0}}>Electronics PCB IDs</Lbl><Btn v="ghost" style={{fontSize:10,padding:"2px 8px"}} onClick={addPid}>+ Add</Btn></div>
@@ -206,12 +208,22 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 :<div style={{fontSize:13,color:project.description?"var(--txt)":"var(--txt3)",lineHeight:1.7}}>{project.description||"No description."}</div>}
               </Card>
 
-              <SH title="Timeline"/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-                {[["Start",fmtDate(project.startDate),"var(--blue)"],["End",fmtDate(project.endDate),dl<0?"var(--red)":dl<14?"var(--amber)":"var(--green)"],["Days Left",dl<0?"OVERDUE":dl+"d",dl<0?"var(--red)":dl<14?"var(--amber)":"var(--txt)"]].map(([label,val,color])=>(
-                  <div key={label} style={{padding:"12px 14px",background:"var(--s2)",borderRadius:8}}><div style={{fontSize:11,color:"var(--txt2)",marginBottom:5,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.04em"}}>{label}</div><div style={{fontSize:16,fontWeight:700,color}}>{val}</div></div>
-                ))}
-              </div>
+              <SH title="Timeline" action={isPM&&<Btn v="ghost" style={{fontSize:10,padding:"3px 9px"}} onClick={()=>{if(!editTimeline)setTimelineDraft({startDate:project.startDate||"",endDate:project.endDate||""});setEditTimeline(!editTimeline);}}>{editTimeline?"Cancel":"✏ Edit"}</Btn>}/>
+              {editTimeline?(
+                <div style={{padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bdr2)",borderRadius:10,marginBottom:14}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><Lbl>Start Date</Lbl><Inp type="date" value={timelineDraft.startDate} onChange={e=>setTimelineDraft(d=>({...d,startDate:e.target.value}))}/></div>
+                    <div><Lbl>End Date</Lbl><Inp type="date" value={timelineDraft.endDate} onChange={e=>setTimelineDraft(d=>({...d,endDate:e.target.value}))}/></div>
+                  </div>
+                  <div style={{display:"flex",gap:6,justifyContent:"flex-end"}}><Btn v="secondary" style={{fontSize:11}} onClick={()=>setEditTimeline(false)}>Cancel</Btn><Btn v="success" style={{fontSize:11}} onClick={()=>{upd({...project,startDate:timelineDraft.startDate||null,endDate:timelineDraft.endDate||null});setEditTimeline(false);showToast("Timeline updated ✓","var(--green)");}}>💾 Save</Btn></div>
+                </div>
+              ):(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                  {[["Start",fmtDate(project.startDate),"var(--blue)"],["End",fmtDate(project.endDate),dl<0?"var(--red)":dl<14?"var(--amber)":"var(--green)"],["Days Left",dl<0?"OVERDUE":dl+"d",dl<0?"var(--red)":dl<14?"var(--amber)":"var(--txt)"]].map(([label,val,color])=>(
+                    <div key={label} style={{padding:"12px 14px",background:"var(--s2)",borderRadius:8}}><div style={{fontSize:11,color:"var(--txt2)",marginBottom:5,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.04em"}}>{label}</div><div style={{fontSize:16,fontWeight:700,color}}>{val}</div></div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div style={{minWidth:0,overflow:"hidden"}}>
