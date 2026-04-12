@@ -106,22 +106,28 @@ describe("assignSlot direct-save flow", () => {
    *   2. Update local state via setProjects
    */
 
-  it("upsert writes correct row to team_assignments", async () => {
-    const upsertChain = chainMock({ data: [{ id: 1 }], error: null });
-    mockFrom.mockReturnValue(upsertChain);
+  it("assign deletes existing row then inserts new one", async () => {
+    const deleteChain = chainMock({ data: null, error: null });
+    const insertChain = chainMock({ data: [{ id: 1 }], error: null });
 
-    const row = {
-      project_id: "abc-123",
-      user_id: 42,
-      role: "HW Lead",
-      start_date: "2026-01-01",
-      end_date: "2026-06-01",
-    };
-    const { data, error } = await supabase.from("team_assignments").upsert(row, { onConflict: "project_id,role" });
+    mockFrom.mockReset();
+    mockFrom.mockImplementation(() => {
+      // First call = delete, second call = insert
+      if (mockFrom.mock.calls.length <= 1) return deleteChain;
+      return insertChain;
+    });
 
-    expect(mockFrom).toHaveBeenCalledWith("team_assignments");
-    expect(upsertChain.upsert).toHaveBeenCalledWith(row, { onConflict: "project_id,role" });
-    expect(error).toBeNull();
+    // Step 1: delete existing for this role
+    await supabase.from("team_assignments").delete().eq("project_id", "abc-123").eq("role", "HW Lead");
+    // Step 2: insert new
+    const row = { project_id: "abc-123", user_id: 42, role: "HW Lead", start_date: "2026-01-01", end_date: "2026-06-01" };
+    await supabase.from("team_assignments").insert(row);
+
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+    expect(deleteChain.delete).toHaveBeenCalled();
+    expect(deleteChain.eq).toHaveBeenCalledWith("project_id", "abc-123");
+    expect(deleteChain.eq).toHaveBeenCalledWith("role", "HW Lead");
+    expect(insertChain.insert).toHaveBeenCalledWith(row);
   });
 
   it("clearing a slot deletes the row by project_id + role", async () => {
@@ -137,20 +143,16 @@ describe("assignSlot direct-save flow", () => {
   });
 
   it("assignSlot does NOT touch the projects table at all", async () => {
-    // assignSlot only writes to team_assignments, then updates local state
-    // via setProjects — it never calls updateProjectInDB.
-    const upsertChain = chainMock({ data: [{ id: 1 }], error: null });
+    const chain = chainMock({ data: null, error: null });
     mockFrom.mockReset();
-    mockFrom.mockReturnValue(upsertChain);
+    mockFrom.mockReturnValue(chain);
 
-    await supabase.from("team_assignments").upsert(
-      { project_id: "abc-123", user_id: 42, role: "HW Lead", start_date: null, end_date: null },
-      { onConflict: "project_id,role" }
-    );
+    // Simulate assignSlot: delete then insert — both hit team_assignments only
+    await supabase.from("team_assignments").delete().eq("project_id", "abc-123").eq("role", "HW Lead");
+    await supabase.from("team_assignments").insert({ project_id: "abc-123", user_id: 42, role: "HW Lead" });
 
-    // Only team_assignments was touched — never "projects"
     const tablesCalled = mockFrom.mock.calls.map(c => c[0]);
-    expect(tablesCalled).toEqual(["team_assignments"]);
+    expect(tablesCalled).toEqual(["team_assignments", "team_assignments"]);
     expect(tablesCalled).not.toContain("projects");
   });
 
@@ -193,17 +195,34 @@ describe("assignSlot direct-save flow", () => {
     expect(emptySlot?.userId ? String(emptySlot.userId) : "").toBe("");
   });
 
-  it("all users shown in dropdown (no role filtering)", () => {
+  it("shows role-matched users when available, falls back to all", () => {
     const users = [
       { id: 1, name: "Alice", resourceRole: "sr_hw" },
       { id: 2, name: "Bob", resourceRole: "jr_fw" },
-      { id: 3, name: "Charlie", resourceRole: null },
-      { id: 4, name: "", resourceRole: "sr_pm" }, // empty name filtered out
+      { id: 3, name: "Charlie", resourceRole: "sr_hw" },
     ];
-    // Mirrors: (users||[]).filter(u=>u.name)
-    const eligible = users.filter(u => u.name);
-    expect(eligible).toHaveLength(3);
-    expect(eligible.map(u => u.name)).toEqual(["Alice", "Bob", "Charlie"]);
+    const slotRoleKeys = ["sr_hw"];
+
+    // Mirrors: roleMatch first, fallback to all
+    const roleMatch = users.filter(u => u.name && slotRoleKeys.includes(u.resourceRole));
+    const eligible = roleMatch.length > 0 ? roleMatch : users.filter(u => u.name);
+
+    expect(eligible).toHaveLength(2);
+    expect(eligible.map(u => u.name)).toEqual(["Alice", "Charlie"]);
+  });
+
+  it("falls back to all users when no role match exists", () => {
+    const users = [
+      { id: 1, name: "Alice", resourceRole: "sr_hw" },
+      { id: 2, name: "Bob", resourceRole: "jr_fw" },
+    ];
+    const slotRoleKeys = ["nonexistent_role"];
+
+    const roleMatch = users.filter(u => u.name && slotRoleKeys.includes(u.resourceRole));
+    const eligible = roleMatch.length > 0 ? roleMatch : users.filter(u => u.name);
+
+    expect(eligible).toHaveLength(2); // falls back to all
+    expect(eligible.map(u => u.name)).toEqual(["Alice", "Bob"]);
   });
 
   it("clearing a slot removes it from local state", () => {

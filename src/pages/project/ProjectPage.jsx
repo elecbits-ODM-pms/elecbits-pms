@@ -248,12 +248,13 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 const updateSlot=(role,field,val)=>setTeamDraft(prev=>{const exists=prev.find(x=>x.role===role);if(exists)return prev.map(x=>x.role===role?{...x,[field]:val}:x);return [...prev,{role,userId:"",startDate:project.startDate||"",endDate:project.endDate||"",[field]:val}];});
                 const assignSlot=async(slotRole,userId)=>{
                   const member=userId?(users||[]).find(u=>u.id===userId):null;
-                  if(!userId){
-                    const{error}=await supabase.from("team_assignments").delete().eq("project_id",project.id).eq("role",slotRole);
-                    if(error){showToast("Failed to unassign: "+error.message,"red");return;}
-                  }else{
-                    const{error}=await supabase.from("team_assignments").upsert({project_id:project.id,user_id:Number(userId),role:slotRole,start_date:project.startDate||null,end_date:project.endDate||null},{onConflict:"project_id,role"});
-                    if(error){showToast("Failed to assign: "+error.message,"red");return;}
+                  // Always delete existing row for this role first
+                  const{error:delErr}=await supabase.from("team_assignments").delete().eq("project_id",project.id).eq("role",slotRole);
+                  if(delErr){showToast("Failed: "+delErr.message,"red");return;}
+                  // Insert new row if a user was selected
+                  if(userId){
+                    const{error:insErr}=await supabase.from("team_assignments").insert({project_id:project.id,user_id:Number(userId),role:slotRole,start_date:project.startDate||null,end_date:project.endDate||null});
+                    if(insErr){showToast("Failed: "+insErr.message,"red");return;}
                   }
                   const newTA=(project.teamAssignments||[]).filter(a=>a.role!==slotRole);
                   if(userId)newTA.push({userId:Number(userId),role:slotRole,startDate:project.startDate||"",endDate:project.endDate||""});
@@ -269,7 +270,8 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                     {TEAM_SLOTS.map(slot=>{
                       const a=getSlotAssignment(slot.role);
                       const m=a?.userId?getUser(a.userId,users):null;
-                      const eligible=(users||[]).filter(u=>u.name);
+                      const roleMatch=(users||[]).filter(u=>u.name&&slot.roleKeys.includes(u.resourceRole));
+                      const eligible=roleMatch.length>0?roleMatch:(users||[]).filter(u=>u.name);
                       return(
                         <div key={slot.role} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:m?"var(--s2)":"var(--bg)",border:"1px solid var(--bdr)",borderRadius:8,marginBottom:5,opacity:!m&&!editTeam?0.4:1}}>
                           {m?<Av uid={m.id} size={28} users={users}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"var(--bdr)",border:"1px dashed var(--bdr2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"var(--txt3)",flexShrink:0}}>—</div>}
