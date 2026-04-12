@@ -160,6 +160,9 @@ export default function App(){
     } else if (view === "settings") {
       setOpenedProject(null);
       setSidebarView("settings");
+    } else if (view === "dev-console") {
+      setOpenedProject(null);
+      setSidebarView("dev-console");
     }
   };
 

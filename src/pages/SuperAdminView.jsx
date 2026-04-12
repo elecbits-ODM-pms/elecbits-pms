@@ -9,6 +9,7 @@ import ResourcesView from "./resources/ResourcesView.jsx";
 import AlertsView from "./AlertsView.jsx";
 import PersonalSettingsModal from "./PersonalSettingsModal.jsx";
 import { EB_LOGO_URL } from "../components/Sidebar.jsx";
+import DevConsole from "./DevConsole.jsx";
 
 const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUsers,isDark,toggleTheme,prefillProject,clearPrefill,fetchProjects,sidebarView,setSidebarView})=>{
   const view = sidebarView || "projects";
@@ -534,6 +535,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
         </>}
         {view==="resources"&&<div style={{padding:28}}><ResourcesView projects={projects} users={users} setUsers={setUsers} isAdmin={true} currentUser={currentUser}/></div>}
         {view==="alerts"&&<div style={{padding:28}}><AlertsView projects={projects} currentUser={currentUser} users={users}/></div>}
+        {view==="dev-console"&&<DevConsole currentUser={currentUser}/>}
       </div>
 
       {showRejected&&(
