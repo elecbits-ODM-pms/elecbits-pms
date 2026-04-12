@@ -155,54 +155,56 @@ Deno.serve(async (req) => {
     // 2. Get Google access token via service account
     const accessToken = await getAccessToken(serviceAccount);
 
-    // 3. Build rows to append matching the April_2026 sheet layout (columns A:W):
+    // 3. Build rows to append matching the actual sheet layout (columns A:X):
     //    A: S. No.
-    //    B: Project - ID          ← project_id goes here
-    //    C: Project Name
-    //    D: Type of Services (project_tag)
-    //    E: Technology / Capability
-    //    F: LLD - PM
-    //    G: Milestone Tracker
-    //    H: Audit Checklist - PM
-    //    I: Product ID - Technical /GW - Link
-    //    J: Audit Checklist - Product
-    //    K: Initial Customer Contact (client_name)
-    //    L: Senior PM
-    //    M: PM
-    //    N: TM
-    //    O: Senior HW
-    //    P: HW
-    //    Q: Senior FW
-    //    R: FW
-    //    S: Industrial Design
-    //    T: Timeline
-    //    U: Start Date
-    //    V: End Date
-    //    W: Remarks
+    //    B: Date of Entry
+    //    C: Project - ID
+    //    D: Project Name
+    //    E: Type of Services (project_tag)
+    //    F: Technology / Capability
+    //    G: LLD - PM
+    //    H: Milestone Tracker
+    //    I: Audit Checklist - PM
+    //    J: Product ID - Technical /GW - Link
+    //    K: Audit Checklist - Product
+    //    L: Initial Customer Contact (client_name)
+    //    M: Senior PM
+    //    N: PM
+    //    O: TM
+    //    P: Senior HW
+    //    Q: HW
+    //    R: Senior FW
+    //    S: FW
+    //    T: Industrial Design
+    //    U: Timeline
+    //    V: Start Date
+    //    W: End Date
+    //    X: Remarks
     const sheetRows = dirtyRows.map((r) => [
       "",                          // A: S. No.
-      r.project_id   ?? "",        // B: Project - ID
-      r.name         ?? "",        // C: Project Name
-      r.project_tag  ?? "",        // D: Type of Services
-      "",                          // E: Technology / Capability
-      r.lld_url      ?? "",        // F: LLD - PM
-      "",                          // G: Milestone Tracker
-      "",                          // H: Audit Checklist - PM
-      "",                          // I: Product ID - Technical /GW - Link
-      "",                          // J: Audit Checklist - Product
-      r.client_name  ?? "",        // K: Initial Customer Contact
-      "",                          // L: Senior PM
-      "",                          // M: PM
-      "",                          // N: TM
-      "",                          // O: Senior HW
-      "",                          // P: HW
-      "",                          // Q: Senior FW
-      "",                          // R: FW
-      "",                          // S: Industrial Design
-      "",                          // T: Timeline
-      r.start_date   ?? "",        // U: Start Date
-      r.end_date     ?? "",        // V: End Date
-      "",                          // W: Remarks
+      r.date_of_entry  ?? "",      // B: Date of Entry
+      r.project_id     ?? "",      // C: Project - ID
+      r.name           ?? "",      // D: Project Name
+      r.project_tag    ?? "",      // E: Type of Services
+      "",                          // F: Technology / Capability
+      r.lld_url        ?? "",      // G: LLD - PM
+      "",                          // H: Milestone Tracker
+      "",                          // I: Audit Checklist - PM
+      "",                          // J: Product ID - Technical /GW - Link
+      "",                          // K: Audit Checklist - Product
+      r.client_name    ?? "",      // L: Initial Customer Contact
+      "",                          // M: Senior PM
+      "",                          // N: PM
+      "",                          // O: TM
+      "",                          // P: Senior HW
+      "",                          // Q: HW
+      "",                          // R: Senior FW
+      "",                          // S: FW
+      "",                          // T: Industrial Design
+      "",                          // U: Timeline
+      r.start_date     ?? "",      // V: Start Date
+      r.end_date       ?? "",      // W: End Date
+      "",                          // X: Remarks
     ]);
 
     // 4. Resolve the sheet tab name — find the latest month tab (or use configured name)
@@ -223,7 +225,7 @@ Deno.serve(async (req) => {
     }
 
     // 5. Append to Google Sheet via Sheets API v4
-    const rawRange = tabName ? `'${tabName}'!A:W` : "A:W";
+    const rawRange = tabName ? `'${tabName}'!A:X` : "A:X";
     const range = encodeURIComponent(rawRange);
     const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
 

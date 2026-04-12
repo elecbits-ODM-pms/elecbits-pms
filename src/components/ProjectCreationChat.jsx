@@ -647,6 +647,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
       lld_url:          data.lldUrl || null,
       lld_data:         data.lldExists ? null : { answers: data.lldAnswers, contact: data.contactName, email: data.contactEmail, generatedDocument: generatedLLD || null },
       dirty:            true,
+      date_of_entry:    new Date().toISOString().slice(0, 10),
     }).select().single();
 
     if (pe) {
@@ -1172,6 +1173,13 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
     const genId = `EbZ-${clientId}-${String(count).padStart(3,"0")}`;
     const isDuplicate = allProjects.some(p => p.projectId === genId);
 
+    const refreshCount = async () => {
+      setLoadingCount(true);
+      const next = await getNextProjectCount(clientId);
+      setCount(next);
+      setLoadingCount(false);
+    };
+
     // Auto-calculate the next count for this client on mount
     useEffect(() => {
       let cancelled = false;
@@ -1184,7 +1192,13 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
 
     return (
       <div style={S.widget}>
-        <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569" }}>Project ID Generator</div>
+        <div style={{ padding:"10px 18px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:600, color:"#475569", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <span>Project ID Generator</span>
+          <button onClick={refreshCount} disabled={loadingCount} style={{ background:"none", border:"1px solid #cbd5e1", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:600, color:"#475569", cursor: loadingCount ? "not-allowed" : "pointer", opacity: loadingCount ? 0.5 : 1, display:"flex", alignItems:"center", gap:4 }}
+            title="Re-fetch count from Supabase & Google Sheet">
+            {loadingCount ? "..." : "\u21BB"} Refresh
+          </button>
+        </div>
         <div style={S.widgetInner}>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
             <div>

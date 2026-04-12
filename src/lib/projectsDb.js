@@ -41,12 +41,9 @@ export async function pushDirtyProjectsToSheet() {
 }
 
 /**
- * Get the next project count for a given client ID.
- * Counts existing projects whose project_id starts with `EbZ-{clientId}-`.
+ * Get the max project count for a client from Supabase.
  */
-export async function getNextProjectCount(clientId) {
-  if (!clientId) return 1;
-
+async function getSupabaseMaxCount(clientId) {
   const prefix = `EbZ-${clientId}-`;
   const { data: rows, error } = await supabase
     .from("projects")
@@ -54,18 +51,53 @@ export async function getNextProjectCount(clientId) {
     .like("project_id", `${prefix}%`);
 
   if (error) {
-    console.error("[projectsDb] count query failed:", error);
-    return 1;
+    console.error("[projectsDb] supabase count query failed:", error);
+    return 0;
   }
+  if (!rows || rows.length === 0) return 0;
 
-  if (!rows || rows.length === 0) return 1;
-
-  // Parse the count suffix from each matching project_id and find the max
   let maxCount = 0;
   for (const r of rows) {
     const suffix = r.project_id.slice(prefix.length);
     const num = parseInt(suffix, 10);
     if (!isNaN(num) && num > maxCount) maxCount = num;
   }
+  return maxCount;
+}
+
+/**
+ * Get the max project count for a client from the Google Sheet
+ * via the read-project-ids edge function. Best-effort — returns 0 on failure.
+ */
+async function getSheetMaxCount(clientId) {
+  try {
+    const { data, error } = await supabase.functions.invoke("read-project-ids", {
+      method: "POST",
+      body: { clientId },
+    });
+    if (error || !data?.ok) {
+      console.warn("[projectsDb] read-project-ids failed, falling back to 0:", error || data?.error);
+      return 0;
+    }
+    return data.maxCount ?? 0;
+  } catch (err) {
+    console.warn("[projectsDb] read-project-ids exception, falling back to 0:", err);
+    return 0;
+  }
+}
+
+/**
+ * Get the next project count for a given client ID.
+ * Checks BOTH Supabase and the Google Sheet, takes the max to avoid collisions.
+ */
+export async function getNextProjectCount(clientId) {
+  if (!clientId) return 1;
+
+  const [supabaseMax, sheetMax] = await Promise.all([
+    getSupabaseMaxCount(clientId),
+    getSheetMaxCount(clientId),
+  ]);
+
+  const maxCount = Math.max(supabaseMax, sheetMax);
   return maxCount + 1;
 }
