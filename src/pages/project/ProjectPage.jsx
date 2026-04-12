@@ -392,11 +392,11 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                           const selectedCap=a?.userId?userCap((users||[]).find(u=>u.id===a.userId)):0;
                           const selectedAtCap=a?.userId&&selectedOverlap>=selectedCap;
                           return(
-                            <div key={slot.role} style={{padding:12,background:selectedAtCap?"#fef2f2":"#ffffff",borderRadius:10,border:selectedAtCap?"1px solid #fca5a5":m?`1px solid #e2e8f0`:"1px dashed #e2e8f0",borderLeft:selectedAtCap?"3px solid #dc2626":m?`3px solid ${bgColor}`:"1px dashed #e2e8f0",position:"relative",opacity:!m&&!editTeam?0.6:1,transition:"opacity .15s",boxShadow:m?"0 1px 2px rgba(0,0,0,0.04)":"none"}}>
+                            <div key={slot.role} style={{padding:12,background:selectedAtCap?"#fef2f2":"#ffffff",borderRadius:10,border:selectedAtCap?"1px solid #fca5a5":m?`1px solid #e2e8f0`:"1px dashed #e2e8f0",borderLeft:selectedAtCap?"3px solid #dc2626":m?`3px solid ${bgColor}`:"1px dashed #e2e8f0",position:"relative",opacity:!m&&!editTeam?0.6:1,transition:"opacity .15s",boxShadow:m?"0 1px 2px rgba(0,0,0,0.04)":"none",minWidth:0,overflow:"hidden"}}>
                               <div style={{fontSize:10,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{slot.role}</div>
                               {editTeam?(
                                 <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                                  <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:selectedAtCap?"1px solid #fca5a5":"1px solid #e2e8f0",background:selectedAtCap?"#fef2f2":"#fff",width:"100%",maxWidth:"100%"}}>
+                                  <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:selectedAtCap?"1px solid #fca5a5":"1px solid #e2e8f0",background:selectedAtCap?"#fef2f2":"#fff",width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box"}}>
                                     <option value="">-- Select --</option>
                                     {eligible.map(u=>{const ov=getOverlap(u.id);const cap=userCap(u);const full=ov>=cap;return <option key={u.id} value={String(u.id)}>{u.name} ({RESOURCE_ROLES.find(r=>r.key===u.resourceRole)?.label||u.resourceRole||"Team"}){full?` — ${ov}/${cap} AT CAPACITY`:` — ${ov}/${cap}`}</option>;})}
                                   </Sel>
