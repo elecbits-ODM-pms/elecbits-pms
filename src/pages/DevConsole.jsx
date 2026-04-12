@@ -151,7 +151,7 @@ const DevConsole = ({ currentUser }) => {
       if (part.startsWith("```")) {
         const content = part.replace(/^```\w*\n?/, "").replace(/\n?```$/, "");
         return (
-          <pre key={i} style={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6, padding: "10px 12px", fontSize: 12, overflowX: "auto", margin: "8px 0", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          <pre key={i} style={{ background: "#f6f8fa", border: "1px solid #d0d7de", borderRadius: 6, padding: "10px 12px", fontSize: 12, overflowX: "auto", margin: "8px 0", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#1f2328" }}>
             {content}
           </pre>
         );
@@ -161,10 +161,10 @@ const DevConsole = ({ currentUser }) => {
         <span key={i} style={{ whiteSpace: "pre-wrap" }}>
           {part.split(/(\*\*.*?\*\*|`[^`]+`)/g).map((seg, j) => {
             if (seg.startsWith("**") && seg.endsWith("**")) {
-              return <strong key={j} style={{ color: "#e6edf3" }}>{seg.slice(2, -2)}</strong>;
+              return <strong key={j} style={{ color: "#1f2328" }}>{seg.slice(2, -2)}</strong>;
             }
             if (seg.startsWith("`") && seg.endsWith("`")) {
-              return <code key={j} style={{ background: "#161b22", padding: "1px 5px", borderRadius: 3, fontSize: 12, color: "#79c0ff" }}>{seg.slice(1, -1)}</code>;
+              return <code key={j} style={{ background: "#eff1f3", padding: "1px 5px", borderRadius: 3, fontSize: 12, color: "#0550ae" }}>{seg.slice(1, -1)}</code>;
             }
             return seg;
           })}
@@ -182,20 +182,20 @@ const DevConsole = ({ currentUser }) => {
     const key = `${msgIdx}-${toolIdx}`;
     const expanded = expandedTools[key];
     return (
-      <div key={key} style={{ background: "#0d1117", border: "1px solid #21262d", borderRadius: 6, marginBottom: 4, fontSize: 11 }}>
+      <div key={key} style={{ background: "#f6f8fa", border: "1px solid #d0d7de", borderRadius: 6, marginBottom: 4, fontSize: 11 }}>
         <div
           onClick={() => !isLive && toggleTool(msgIdx, toolIdx)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", cursor: isLive ? "default" : "pointer", color: tool.status === "running" ? "#d29922" : "#3fb950" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", cursor: isLive ? "default" : "pointer", color: tool.status === "running" ? "#9a6700" : "#1a7f37" }}
         >
           <span>{toolIcon(tool.name)}</span>
           <span style={{ fontWeight: 600 }}>{tool.name}</span>
-          {tool.input && <span style={{ color: "#484f58", fontSize: 10 }}>({Object.entries(tool.input).map(([k, v]) => `${k}: ${typeof v === "string" && v.length > 30 ? v.slice(0, 30) + "..." : v}`).join(", ")})</span>}
+          {tool.input && <span style={{ color: "#656d76", fontSize: 10 }}>({Object.entries(tool.input).map(([k, v]) => `${k}: ${typeof v === "string" && v.length > 30 ? v.slice(0, 30) + "..." : v}`).join(", ")})</span>}
           {tool.status === "running" && <span style={{ marginLeft: "auto", animation: "spin 1s linear infinite", display: "inline-block" }}>&#9881;</span>}
-          {tool.status === "done" && <span style={{ marginLeft: "auto", color: "#3fb950" }}>&#10003;</span>}
-          {!isLive && <span style={{ marginLeft: isLive ? 0 : 4, color: "#484f58", fontSize: 9 }}>{expanded ? "\u25B2" : "\u25BC"}</span>}
+          {tool.status === "done" && <span style={{ marginLeft: "auto", color: "#1a7f37" }}>&#10003;</span>}
+          {!isLive && <span style={{ marginLeft: isLive ? 0 : 4, color: "#656d76", fontSize: 9 }}>{expanded ? "\u25B2" : "\u25BC"}</span>}
         </div>
         {expanded && tool.result && (
-          <div style={{ padding: "6px 10px", borderTop: "1px solid #21262d", color: "#8b949e", fontSize: 11, whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto" }}>
+          <div style={{ padding: "6px 10px", borderTop: "1px solid #d0d7de", color: "#656d76", fontSize: 11, whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto" }}>
             {tool.result}
           </div>
         )}
@@ -204,42 +204,42 @@ const DevConsole = ({ currentUser }) => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0d1117", color: "#c9d1d9", fontFamily: "'IBM Plex Mono', monospace" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#ffffff", color: "#1f2328", fontFamily: "'IBM Plex Mono', monospace" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1px solid #21262d", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1px solid #d0d7de", flexShrink: 0, background: "#f6f8fa" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#58a6ff" }}>&gt;_ Dev Console</span>
-          <span style={{ fontSize: 10, color: "#484f58", padding: "2px 8px", border: "1px solid #21262d", borderRadius: 99 }}>AI-Powered</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#0550ae" }}>&gt;_ Dev Console</span>
+          <span style={{ fontSize: 10, color: "#656d76", padding: "2px 8px", border: "1px solid #d0d7de", borderRadius: 99, background: "#ffffff" }}>AI-Powered</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 10, color: "#484f58" }}>branch:</span>
+          <span style={{ fontSize: 10, color: "#656d76" }}>branch:</span>
           <input
             value={branch}
             onChange={e => setBranch(e.target.value)}
-            style={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 4, color: "#3fb950", padding: "3px 8px", fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", width: 120, outline: "none" }}
+            style={{ background: "#ffffff", border: "1px solid #d0d7de", borderRadius: 4, color: "#1a7f37", padding: "3px 8px", fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", width: 120, outline: "none" }}
           />
-          <span style={{ fontSize: 10, color: "#484f58" }}>{currentUser?.name}</span>
+          <span style={{ fontSize: 10, color: "#656d76" }}>{currentUser?.name}</span>
         </div>
       </div>
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
         {messages.length === 0 && (
-          <div style={{ textAlign: "center", marginTop: 80, color: "#484f58" }}>
+          <div style={{ textAlign: "center", marginTop: 80, color: "#656d76" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>&#9000;</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#58a6ff", marginBottom: 6 }}>AI Dev Console</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#0550ae", marginBottom: 6 }}>AI Dev Console</div>
             <div style={{ fontSize: 12, maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
               Chat with an AI assistant that can read, edit, and push code to<br />
-              <span style={{ color: "#3fb950" }}>elecbits-ODM-pms/elecbits-pms</span>
+              <span style={{ color: "#1a7f37" }}>elecbits-ODM-pms/elecbits-pms</span>
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
               {["Show me src/App.jsx", "List all files in src/pages/", "Search for 'TEAM_SLOTS'", "What does constants.jsx export?"].map(q => (
                 <button
                   key={q}
                   onClick={() => { setInput(q); }}
-                  style={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6, color: "#8b949e", padding: "6px 12px", fontSize: 11, cursor: "pointer", fontFamily: "'IBM Plex Mono', monospace", transition: "all .15s" }}
-                  onMouseEnter={e => { e.target.style.borderColor = "#58a6ff"; e.target.style.color = "#c9d1d9"; }}
-                  onMouseLeave={e => { e.target.style.borderColor = "#30363d"; e.target.style.color = "#8b949e"; }}
+                  style={{ background: "#f6f8fa", border: "1px solid #d0d7de", borderRadius: 6, color: "#656d76", padding: "6px 12px", fontSize: 11, cursor: "pointer", fontFamily: "'IBM Plex Mono', monospace", transition: "all .15s" }}
+                  onMouseEnter={e => { e.target.style.borderColor = "#0550ae"; e.target.style.color = "#1f2328"; }}
+                  onMouseLeave={e => { e.target.style.borderColor = "#d0d7de"; e.target.style.color = "#656d76"; }}
                 >
                   {q}
                 </button>
@@ -255,13 +255,13 @@ const DevConsole = ({ currentUser }) => {
               <span style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: msg.role === "user" ? "#58a6ff" : "#3fb950",
+                color: msg.role === "user" ? "#0550ae" : "#1a7f37",
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
               }}>
                 {msg.role === "user" ? currentUser?.name || "You" : "Assistant"}
               </span>
-              <span style={{ fontSize: 9, color: "#30363d" }}>
+              <span style={{ fontSize: 9, color: "#afb8c1" }}>
                 {new Date(msg.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
@@ -276,9 +276,9 @@ const DevConsole = ({ currentUser }) => {
             {/* Message content */}
             <div style={{
               padding: msg.role === "user" ? "8px 12px" : "0",
-              background: msg.role === "user" ? "#161b22" : "transparent",
+              background: msg.role === "user" ? "#f6f8fa" : "transparent",
               borderRadius: msg.role === "user" ? 8 : 0,
-              border: msg.role === "user" ? "1px solid #21262d" : "none",
+              border: msg.role === "user" ? "1px solid #d0d7de" : "none",
               fontSize: 13,
               lineHeight: 1.6,
             }}>
@@ -296,7 +296,7 @@ const DevConsole = ({ currentUser }) => {
 
         {/* Loading indicator */}
         {isLoading && toolEvents.length === 0 && messages[messages.length - 1]?.role !== "assistant" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#484f58", fontSize: 12, padding: "8px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#656d76", fontSize: 12, padding: "8px 0" }}>
             <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>&#9881;</span>
             Thinking...
           </div>
@@ -306,9 +306,9 @@ const DevConsole = ({ currentUser }) => {
       </div>
 
       {/* Input */}
-      <div style={{ borderTop: "1px solid #21262d", padding: "12px 20px", flexShrink: 0 }}>
+      <div style={{ borderTop: "1px solid #d0d7de", padding: "12px 20px", flexShrink: 0, background: "#f6f8fa" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-          <span style={{ color: "#3fb950", fontSize: 14, fontWeight: 700, paddingBottom: 6 }}>&gt;</span>
+          <span style={{ color: "#1a7f37", fontSize: 14, fontWeight: 700, paddingBottom: 6 }}>&gt;</span>
           <textarea
             ref={inputRef}
             value={input}
@@ -324,10 +324,10 @@ const DevConsole = ({ currentUser }) => {
             rows={1}
             style={{
               flex: 1,
-              background: "#161b22",
-              border: "1px solid #30363d",
+              background: "#ffffff",
+              border: "1px solid #d0d7de",
               borderRadius: 8,
-              color: "#c9d1d9",
+              color: "#1f2328",
               padding: "10px 14px",
               fontSize: 13,
               fontFamily: "'IBM Plex Mono', monospace",
@@ -346,10 +346,10 @@ const DevConsole = ({ currentUser }) => {
             onClick={sendMessage}
             disabled={isLoading || !input.trim()}
             style={{
-              background: isLoading || !input.trim() ? "#21262d" : "#238636",
-              border: "1px solid " + (isLoading || !input.trim() ? "#30363d" : "#2ea043"),
+              background: isLoading || !input.trim() ? "#e1e4e8" : "#2563eb",
+              border: "1px solid " + (isLoading || !input.trim() ? "#d0d7de" : "#1d4ed8"),
               borderRadius: 8,
-              color: isLoading || !input.trim() ? "#484f58" : "#ffffff",
+              color: isLoading || !input.trim() ? "#8b949e" : "#ffffff",
               padding: "10px 16px",
               fontSize: 12,
               fontWeight: 700,
@@ -362,7 +362,7 @@ const DevConsole = ({ currentUser }) => {
             Send
           </button>
         </div>
-        <div style={{ fontSize: 9, color: "#30363d", marginTop: 6, textAlign: "center" }}>
+        <div style={{ fontSize: 9, color: "#afb8c1", marginTop: 6, textAlign: "center" }}>
           Shift+Enter for new line &middot; AI can read, edit, commit & push to GitHub &middot; Branch: {branch}
         </div>
       </div>
