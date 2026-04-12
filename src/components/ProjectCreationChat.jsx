@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase.js";
 import { fetchClientsFromSheet, searchCompanyInfo, appendNewClientToDb } from "../lib/googleSheets.js";
-// Phase 1 of the Supabase sync rollout: read path moved off Google Sheets.
-// Writes still go through googleSheets.js → OAuth Sheets API; Phase 2 will
-// switch them to Supabase inserts and let the cron push back to the sheet.
-import { searchClients, ClientDbError, preloadClientDb, isClientDbConfigured } from "../lib/clientsDb.js";
+import {
+  searchClients, ClientDbError, preloadClientDb, isClientDbConfigured,
+  clearClientDbCache, triggerSheetSync,
+} from "../lib/clientsDb.js";
 import { signInWithGoogle, isGoogleSignedIn, isGoogleConfigured, signOutGoogle } from "../lib/googleAuth.js";
 import { searchDriveFiles, readDoc, createGoogleDoc } from "../lib/googleApi.js";
 import { generateLLD, buildFallbackLLD } from "../lib/lldGenerator.js";
@@ -229,6 +229,22 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   }, [addMsg]);
 
   useEffect(scrollBottom, [messages, typing, scrollBottom]);
+
+  /* ─── REFRESH CLIENT DB ────────────────────────────────────────*/
+  // Calls the sync-clients Supabase edge function: it pulls the Google Sheet
+  // server-side and upserts into public.clients, then we re-read from Supabase
+  // so the badge reflects the new count.
+  const handleRefreshDb = useCallback(async () => {
+    if (dbStatus.state === "loading") return;
+    setDbStatus({ state: "loading", rowCount: 0, error: null });
+    const res = await triggerSheetSync();
+    if (res.ok) {
+      setDbStatus({ state: "ready", rowCount: res.rowCount, error: null });
+    } else {
+      console.error(`[clientDb] manual refresh failed — ${res.error}`);
+      setDbStatus({ state: "error", rowCount: 0, error: res.error });
+    }
+  }, [dbStatus.state]);
 
   /* ─── STEP ENGINE ──────────────────────────────────────────────*/
   const goStep = useCallback(async (step, skipPush) => {
@@ -1440,7 +1456,7 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
   return (
     <div style={S.overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       {/* Dot animation keyframes */}
-      <style>{`@keyframes dotPulse{from{opacity:.3;transform:scale(.8)}to{opacity:1;transform:scale(1)}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`}</style>
+      <style>{`@keyframes dotPulse{from{opacity:.3;transform:scale(.8)}to{opacity:1;transform:scale(1)}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}} @keyframes dbSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       <div style={S.modal}>
         {/* Header */}
@@ -1466,11 +1482,32 @@ const ProjectCreationChat = ({ isOpen, onClose, onProjectCreated, users, allProj
                   : dbStatus.state === "loading"
                   ? { bg:"rgba(250,204,21,0.2)", fg:"#fef08a", dot:"#facc15", text:"Client DB · loading" }
                   : { bg:"rgba(239,68,68,0.2)", fg:"#fecaca", dot:"#f87171", text:"Client DB · error" };
+                const isLoading = dbStatus.state === "loading";
                 return (
-                  <span title={dbStatus.error || ""} style={{ ...S.badge, background:cfg.bg, color:cfg.fg, fontSize:10, display:"flex", alignItems:"center", gap:4 }}>
+                  <button
+                    type="button"
+                    onClick={handleRefreshDb}
+                    disabled={isLoading}
+                    title={dbStatus.error || "Click to refresh from Google Sheet"}
+                    style={{
+                      ...S.badge,
+                      background: cfg.bg, color: cfg.fg, fontSize: 10,
+                      display: "flex", alignItems: "center", gap: 4,
+                      border: "none",
+                      cursor: isLoading ? "wait" : "pointer",
+                      transition: "filter .15s",
+                    }}
+                    onMouseEnter={e => { if (!isLoading) e.currentTarget.style.filter = "brightness(1.15)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
+                  >
                     <span style={{ width:6, height:6, borderRadius:"50%", background:cfg.dot, display:"inline-block" }} />
                     {cfg.text}
-                  </span>
+                    <span style={{
+                      fontSize: 11, marginLeft: 2,
+                      display: "inline-block",
+                      animation: isLoading ? "dbSpin 0.8s linear infinite" : "none",
+                    }}>↻</span>
+                  </button>
                 );
               })()}
               <span style={S.badge}>Q {currentQ} of {totalSteps}</span>

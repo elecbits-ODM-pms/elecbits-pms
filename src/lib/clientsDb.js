@@ -119,6 +119,45 @@ export async function preloadClientDb() {
 }
 
 /**
+ * Trigger the `sync-clients` Supabase edge function. The function fetches the
+ * Google Sheet server-side (using the service role key, bypassing RLS) and
+ * upserts every row into public.clients. Then we drop the local cache and
+ * re-read so the badge reflects the new row count.
+ *
+ * Returns { ok: true, rowCount, upsertedCount, deletedCount, durationMs }
+ * on success, or { ok: false, error } on failure.
+ */
+export async function triggerSheetSync() {
+  console.log("[clientDb] invoking sync-clients edge function…");
+  const t0 = Date.now();
+  const { data, error } = await supabase.functions.invoke("sync-clients", {
+    method: "POST",
+  });
+  const transportMs = Date.now() - t0;
+
+  if (error) {
+    console.error("[clientDb] sync-clients invoke failed:", error);
+    return { ok: false, error: error.message || String(error) };
+  }
+  if (!data || data.ok !== true) {
+    const msg = data?.error || "edge function returned no data";
+    console.error("[clientDb] sync-clients failed:", msg);
+    return { ok: false, error: msg };
+  }
+
+  console.log(
+    `[clientDb] sync-clients OK in ${data.durationMs}ms (transport ${transportMs}ms): ` +
+    `${data.rowCount} rows, ${data.upsertedCount} upserts, ${data.deletedCount} deletes`
+  );
+
+  // Drop the in-memory cache and re-read fresh data so the badge updates.
+  clearClientDbCache();
+  const reload = await preloadClientDb();
+  if (!reload.ok) return reload;
+  return { ok: true, rowCount: reload.rowCount, ...data };
+}
+
+/**
  * Multi-word AND substring search on organisation_name (case-insensitive).
  * Results ranked exact > prefix > substring, alphabetised within each tier,
  * capped at MAX_MATCHES.

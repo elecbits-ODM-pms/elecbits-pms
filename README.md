@@ -17,30 +17,62 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ---
 
-## Client database sync (Phase 1)
+## Client database sync
 
 The "Client Data and IDs" Google Sheet is mirrored into the `public.clients`
-Supabase table by a GitHub Action that runs every 5 minutes. The browser reads
-from Supabase, never from the sheet directly.
+Supabase table. The browser reads from Supabase, never directly from the
+sheet. A **manual refresh button** in the chat header (the `Client DB · N`
+badge) triggers a Supabase edge function that pulls the sheet on demand.
+
+### Architecture
+
+```
+[Google Sheet] ──gviz CSV──▶ [Edge function: sync-clients] ──upsert──▶ [public.clients]
+                                       ▲                                       │
+                                       │                                       │
+                                  invoked by                              read by
+                                       │                                       │
+                                       └──── [Browser refresh button]  ◀──────┘
+```
 
 ### One-time setup
 
 1. **Create the table**
    - Open the Supabase SQL editor for project `ngxdukdmudtebykmihgw`.
    - Paste & run `supabase/migrations/001_create_clients_table.sql`.
-   - Verify: `SELECT count(*) FROM public.clients;` returns 0.
+   - Verify: `select count(*) from public.clients;` returns `0`.
 
-2. **Add GitHub Actions secrets**
-   Repo → **Settings → Secrets and variables → Actions → New repository secret**:
-   - `SUPABASE_URL` — `https://ngxdukdmudtebykmihgw.supabase.co`
-   - `SUPABASE_SERVICE_ROLE_KEY` — copy from Supabase dashboard → **Project Settings → API → service_role secret**. ⚠ This key bypasses RLS — keep it out of the browser bundle.
+2. **Deploy the edge function**
+   ```bash
+   supabase functions deploy sync-clients --project-ref ngxdukdmudtebykmihgw
+   ```
+   No secrets configuration is needed — Supabase edge functions automatically
+   have `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` injected from the
+   project's own credentials.
 
 3. **First sync**
-   - Repo → **Actions → Sync clients from Google Sheet → Run workflow** (manual dispatch).
-   - Once it completes, `SELECT count(*) FROM public.clients;` should show ~421.
-   - From there, the cron runs every 5 min automatically.
+   - Open the New Project chat in the deployed app.
+   - Click the `Client DB · loading` badge in the header (or wait — it
+     auto-preloads). On the next click of the badge, the edge function runs
+     and the badge shows `Client DB · 421` (or whatever the live row count is).
+   - Verify in Supabase SQL editor: `select count(*) from public.clients;`
 
-### Local one-off sync
+### Manual refresh
+
+Click the **`Client DB · N`** badge in the chat header at any time. It calls
+the `sync-clients` edge function, which:
+
+- Fetches the public sheet via gviz CSV
+- Upserts every row by `source_row_number` (the sheet's row position)
+- Hard-deletes any DB rows whose row number is no longer in the sheet
+- Returns `{ ok, rowCount, upsertedCount, deletedCount, durationMs }`
+
+Typical sync takes 1-2 seconds for ~500 clients.
+
+### Local one-off sync (skip the edge function)
+
+A standalone Node script does the same upsert without going through the
+edge function. Useful for local development before the function is deployed:
 
 ```bash
 SUPABASE_URL=https://ngxdukdmudtebykmihgw.supabase.co \
@@ -48,13 +80,18 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ... \
 node scripts/sync-clients-from-sheet.mjs
 ```
 
-### Phase 2 (planned)
+The service role key is **NEVER** safe in the browser or in `.env.local` —
+keep it in your shell environment only.
 
-Phase 1 is **pull-only** (sheet → DB). Phase 2 adds the push direction:
-- New-client writes go to Supabase (`dirty=true`).
-- The cron uses a Google service account to push `dirty=true` rows up to the sheet, then clears the flag.
-- Browser drops the OAuth Sheets API dependency entirely for client writes.
+### Phase 2 (planned, not yet implemented)
 
-Until Phase 2 ships, new-client writes still go through OAuth Sheets API in
-the browser (the existing `Connect Google Account` flow).
+Phase 1 is sync from sheet → DB only. Phase 2 will add the push direction:
+- New-client writes go straight into `public.clients` via Supabase RLS
+  (`dirty=true`).
+- A new edge function uses a Google service account to push `dirty=true`
+  rows back into the sheet.
+- The browser drops the OAuth Sheets API dependency for client writes.
+
+Until Phase 2 ships, new-client writes still use the in-browser OAuth Sheets
+flow (`Connect Google Account`).
 
