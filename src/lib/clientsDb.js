@@ -206,11 +206,49 @@ export async function appendNewClient({ sNo, organisationName, clientId }) {
     console.log(`[clientDb] inserted new client: ${clientId} ${organisationName} (row ${nextRow})`);
     clearClientDbCache();
     const reload = await preloadClientDb();
+
+    // Auto-push to Google Sheet in the background
+    pushDirtyToSheet().then(res => {
+      if (res.ok) console.log(`[clientDb] auto-push OK: ${res.pushed} rows pushed to sheet`);
+      else console.warn(`[clientDb] auto-push failed: ${res.error}`);
+    });
+
     return { ok: true, rowCount: reload.rowCount };
   } catch (err) {
     console.error("[clientDb] insert error:", err);
     return { ok: false, error: err.message };
   }
+}
+
+/**
+ * Push dirty rows from Supabase to the Google Sheet via the push-clients
+ * edge function (uses a Google service account — no browser sign-in needed).
+ */
+export async function pushDirtyToSheet() {
+  console.log("[clientDb] invoking push-clients edge function…");
+  const { data, error } = await supabase.functions.invoke("push-clients", {
+    method: "POST",
+  });
+
+  if (error) {
+    let detail = error.message || String(error);
+    try {
+      if (error.context && typeof error.context.json === "function") {
+        const body = await error.context.json();
+        detail = body?.error || JSON.stringify(body);
+      }
+    } catch { /* ignore */ }
+    console.error("[clientDb] push-clients failed:", detail);
+    return { ok: false, error: detail };
+  }
+  if (!data || data.ok !== true) {
+    const msg = data?.error || "push-clients returned no data";
+    console.error("[clientDb] push-clients failed:", msg);
+    return { ok: false, error: msg };
+  }
+
+  console.log(`[clientDb] push-clients OK: ${data.pushed} rows pushed in ${data.durationMs}ms`);
+  return { ok: true, pushed: data.pushed };
 }
 
 /**
