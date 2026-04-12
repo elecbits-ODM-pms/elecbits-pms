@@ -33,9 +33,9 @@ BEGIN
     ('shreya@elecbits.in',          'Shreya',           'sr_pm', 'superadmin', 'Project Management',    'superadmin'),
     ('akash.sharma@elecbits.in',    'Akash Sharma',     'sr_pm', 'pm',         'Project Management',    'pm'),
     ('anunay.dixit@elecbits.in',    'Anunay Dixit',     'sr_pm', 'pm',         'Project Management',    'pm'),
-    ('jerom.johnshibu@elecbits.in', 'Jerom Johnshibu',  'pm',    'pm',         'Project Management',    'pm'),
-    ('chhavi.bhatia@elecbits.in',   'Chhavi Bhatia',    'pm',    'pm',         'Project Management',    'pm'),
-    ('nived.p@elecbits.in',         'Nived P',          'pm',    'pm',         'Project Management',    'pm'),
+    ('jerom.johnshibu@elecbits.in', 'Jerom Johnshibu',  'jr_pm', 'pm',         'Project Management',    'pm'),
+    ('chhavi.bhatia@elecbits.in',   'Chhavi Bhatia',    'jr_pm', 'pm',         'Project Management',    'pm'),
+    ('nived.p@elecbits.in',         'Nived P',          'jr_pm', 'pm',         'Project Management',    'pm'),
     ('arun.pratapsingh@elecbits.in','Arun Mohan',       'sr_hw', 'developer',  'Hardware',              'developer'),
     ('amitabh.gogoi@elecbits.in',   'Amitabh Gogoi',    'sr_fw', 'developer',  'Firmware',              'developer'),
     ('yogesh@elecbits.in',          'Yogesh',           'jr_hw', 'developer',  'Hardware',              'developer'),
@@ -64,7 +64,8 @@ BEGIN
           resource_role = _rec.resource_role,
           role          = _rec.role,
           dept          = _rec.dept,
-          login_type    = _rec.login_type
+          login_type    = _rec.login_type,
+          project_tags  = CASE WHEN project_tags IS NULL OR project_tags = '{}' THEN '{"engineering"}'::text[] ELSE project_tags END
         WHERE id = _id;
 
         _updated := _updated + 1;

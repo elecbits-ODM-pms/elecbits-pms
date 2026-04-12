@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { RESOURCE_ROLES, CHECKLIST_DEFS, PROJECT_TAGS, TEAM_SLOTS, UNIQ, tagLabel, tagColor, daysLeft, fmtDate, todayStr, ragColor, getUser, getPM, nonAdmins } from "../lib/constants.jsx";
-import { updateUserWallpaper, sanctionProjectInDB, rejectProjectInDB } from "../lib/db.js";
+import { updateUserWallpaper, sanctionProjectInDB, rejectProjectInDB, updateProjectInDB, replaceTeamAssignments } from "../lib/db.js";
 import { supabase } from "../lib/supabase.js";
 import { Btn, Inp, Sel, Pill, Tag, Stat, Bar, Av, SH, Modal, Toast, ThemeToggle } from "../components/ui/index.jsx";
 import ProjectForm from "../components/ProjectForm.jsx";
@@ -89,6 +89,32 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
     };
 
     if(form.id){
+      // Persist project fields to DB
+      updateProjectInDB(form.id,{
+        name:             form.name,
+        project_id:       form.projectId,
+        product_ids:      form.productIds||[],
+        client_name:      form.clientName||null,
+        client_id:        form.clientId||null,
+        project_tag:      form.projectTag||"engineering",
+        description:      form.description||null,
+        start_date:       form.startDate||null,
+        end_date:         form.endDate||null,
+        pending_sanction: isSubmit||false,
+        checklist_config: form.checklistConfig||{},
+      }).then(()=>{
+        // Persist team assignments to DB
+        const teamRows=(form.teamAssignments||[]).filter(a=>a.userId||a.user_id).map(a=>({
+          project_id: form.id,
+          user_id:    a.userId||a.user_id,
+          role:       a.role,
+          start_date: a.startDate||a.start_date||form.startDate||null,
+          end_date:   a.endDate||a.end_date||form.endDate||null,
+        }));
+        return replaceTeamAssignments(form.id,teamRows);
+      }).then(()=>{
+        setTimeout(()=>fetchProjects(),300);
+      }).catch(e=>console.error("Update project error:",e));
       setProjects(ps=>ps.map(p=>p.id===form.id?{...form,sanctioned:p.sanctioned}:p));
     } else {
       const customChecklists=buildCustomChecklists(form);

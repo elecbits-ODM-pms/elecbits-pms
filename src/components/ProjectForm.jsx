@@ -14,7 +14,7 @@ const ProjectForm=({initial,onSave,onClose,allProjects,users,isAdmin})=>{
   const removeProductId=(i)=>setF(x=>({...x,productIds:x.productIds.filter((_,idx)=>idx!==i)}));
   const getConflicts=(role,userId)=>{
     if(!userId)return null;
-    const uid=Number(userId);const sl=slots[role];
+    const uid=userId;const sl=slots[role];
     const conflicts=allProjects.filter(p=>
       p.id!==initial?.id&&!p.rejected&&
       p.teamAssignments?.some(a=>
@@ -42,7 +42,7 @@ const ProjectForm=({initial,onSave,onClose,allProjects,users,isAdmin})=>{
     const isDuplicate=allProjects.some(p=>p.id!==initial?.id&&p.projectId===f.projectId);
     if(isDuplicate)return alert("Project ID \""+f.projectId+"\" already exists. Use a unique ID.");
     const teamAssignments=TEAM_SLOTS.filter(s=>slots[s.role].userId).map(s=>({
-      userId:Number(slots[s.role].userId),role:s.role,
+      userId:slots[s.role].userId,role:s.role,
       startDate:slots[s.role].startDate||f.startDate,
       endDate:slots[s.role].endDate||f.endDate
     }));
@@ -144,7 +144,7 @@ const ProjectForm=({initial,onSave,onClose,allProjects,users,isAdmin})=>{
           const isTMorPM=["Senior PM","PM"].includes(slot.role);
           const disabled=!isAdmin&&isTMorPM;
           const conflict=getConflicts(slot.role,slots[slot.role].userId);
-          const selUid=slots[slot.role].userId?Number(slots[slot.role].userId):null;
+          const selUid=slots[slot.role].userId||null;
           const selUser=selUid?users.find(u=>u.id===selUid):null;
           const userHols=selUser?(selUser.holidays||[]):[];
           const pendingHols=userHols.filter(h=>h.status==="pending");
