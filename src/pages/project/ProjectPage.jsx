@@ -44,8 +44,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
   const [showProd,setShowProd]=useState(false);
   const [showManageCL,setShowManageCL]=useState(false);
   const [editingCLKey,setEditingCLKey]=useState(null);
-  const [editDesc,setEditDesc]=useState(false);
-  const [desc,setDesc]=useState(project.description||"");
+  const [showAllActions,setShowAllActions]=useState(false);
   const [editTeam,setEditTeam]=useState(false);
   const [teamDraft,setTeamDraft]=useState(project.teamAssignments||[]);
   const [editSheet,setEditSheet]=useState(false);
@@ -202,11 +201,70 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 );
               })()}
 
-              <SH title="About" action={isPM&&<Btn v="ghost" style={{fontSize:10,padding:"3px 9px"}} onClick={()=>setEditDesc(!editDesc)}>{editDesc?"Cancel":"✏ Edit"}</Btn>}/>
-              <Card style={{padding:16,marginBottom:18}}>
-                {editDesc?<div><TA value={desc} onChange={e=>setDesc(e.target.value)} rows={4}/><div style={{display:"flex",gap:6,marginTop:8,justifyContent:"flex-end"}}><Btn v="secondary" style={{fontSize:11}} onClick={()=>setEditDesc(false)}>Cancel</Btn><Btn style={{fontSize:11}} onClick={()=>{upd({...project,description:desc});setEditDesc(false);showToast("Saved ✓","var(--green)");}}>Save</Btn></div></div>
-                :<div style={{fontSize:13,color:project.description?"var(--txt)":"var(--txt3)",lineHeight:1.7}}>{project.description||"No description."}</div>}
-              </Card>
+              {(()=>{
+                const allCLItems=[];
+                const cls={...(project.checklists||{})};
+                const ccls={...(project.customChecklists||{})};
+                Object.entries(cls).forEach(([key,cl])=>{
+                  if(Array.isArray(cl))cl.forEach(c=>(c.items||[]).forEach(it=>allCLItems.push({...it,section:c.label||key})));
+                  else (cl.items||[]).forEach(it=>allCLItems.push({...it,section:(CHECKLIST_DEFS.find(d=>d.key===key)?.label)||key}));
+                });
+                Object.entries(ccls).forEach(([key,cl])=>(cl.items||[]).forEach(it=>allCLItems.push({...it,section:cl.label||key})));
+                const pending=allCLItems.filter(it=>it.status!=="Done"&&it.tmApproval!=="Approved");
+                const getType=(it)=>{
+                  if(it.roadblocks&&it.roadblocks.length>0)return{icon:"⚠",label:"Resolve",color:"#dc2626",variant:"outline-red"};
+                  if(it.tmApproval==="Pending"&&it.submittedForReview)return{icon:"👍",label:"Approve",color:"#7c3aed",variant:"solid-purple"};
+                  if(!it.links||it.links.length===0)return{icon:"↑",label:"Upload",color:"#2563eb",variant:"outline-blue"};
+                  if(it.submittedForReview)return{icon:"👁",label:"Review",color:"#7c3aed",variant:"solid-purple"};
+                  return{icon:"✓",label:"Complete",color:"#64748b",variant:"outline-grey"};
+                };
+                const getPriority=(it)=>{
+                  if(it.roadblocks&&it.roadblocks.length>0)return{level:0,label:"critical",color:"#dc2626"};
+                  if(it.submittedForReview)return{level:1,label:"high",color:"#d97706"};
+                  return{level:2,label:"normal",color:null};
+                };
+                pending.sort((a,b)=>getPriority(a).level-getPriority(b).level);
+                const visible=showAllActions?pending:pending.slice(0,3);
+                const btnStyle=(variant)=>{
+                  if(variant==="solid-purple")return{background:"#7c3aed",color:"#fff",border:"1px solid #7c3aed"};
+                  if(variant==="outline-blue")return{background:"transparent",color:"#2563eb",border:"1px solid #2563eb"};
+                  if(variant==="outline-red")return{background:"transparent",color:"#dc2626",border:"1px solid #dc2626"};
+                  return{background:"transparent",color:"#64748b",border:"1px solid #cbd5e1"};
+                };
+                return(
+                  <div style={{background:"#ffffff",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:18}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontSize:11,fontWeight:700,color:"#1e293b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Your Action Items</span>
+                        {pending.length>0&&<span style={{padding:"2px 10px",borderRadius:99,background:"#7c3aed18",color:"#7c3aed",fontSize:10,fontWeight:700,border:"1px solid #7c3aed30"}}>{pending.length} pending</span>}
+                      </div>
+                      {pending.length>3&&<button onClick={()=>setShowAllActions(!showAllActions)} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,fontWeight:600,color:"#7c3aed"}}>{showAllActions?"Show less":"Show all →"}</button>}
+                    </div>
+                    {pending.length===0?(
+                      <div style={{textAlign:"center",padding:"20px 0",color:"#94a3b8",fontSize:12,lineHeight:1.7}}>No action items yet. Items will appear here once checklists are created.</div>
+                    ):visible.map(it=>{
+                      const typ=getType(it);const pri=getPriority(it);
+                      return(
+                        <div key={it.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#ffffff",border:"1px solid #f1f5f9",borderRadius:10,marginBottom:8}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:typ.color+"14",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{typ.icon}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:14,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.text}</div>
+                            <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{it.status==="Blocked"?"Roadblock reported":it.submittedForReview?"Submitted for review":"Pending completion"}</div>
+                            <div style={{display:"flex",gap:6,marginTop:4,alignItems:"center"}}>
+                              <span style={{padding:"1px 7px",borderRadius:4,fontSize:9,fontWeight:700,background:"#f1f5f9",color:"#64748b"}}>{it.section}</span>
+                              {it.endDate&&<span style={{fontSize:10,color:"#94a3b8"}}>Due {fmtShort(it.endDate)}</span>}
+                            </div>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                            {pri.color&&<span style={{padding:"2px 8px",borderRadius:99,fontSize:9,fontWeight:700,background:pri.color+"14",color:pri.color,border:`1px solid ${pri.color}30`}}>{pri.label}</span>}
+                            <button style={{padding:"6px 14px",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",...btnStyle(typ.variant)}}>{typ.label}</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               <SH title="Timeline" action={isPM&&<Btn v="ghost" style={{fontSize:10,padding:"3px 9px"}} onClick={()=>{if(!editTimeline)setTimelineDraft({startDate:project.startDate||"",endDate:project.endDate||""});setEditTimeline(!editTimeline);}}>{editTimeline?"Cancel":"✏ Edit"}</Btn>}/>
               {editTimeline?(
@@ -236,17 +294,17 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                   <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
                       <span style={{fontSize:16}}>&#9733;</span>
-                      <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Technical Manager</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:"0.06em"}}>Technical Manager</span>
                     </div>
-                    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"10px 14px",background:"#f8fafc",borderRadius:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"10px 14px",background:"#ffffff",borderRadius:10,border:"1px solid #e2e8f0"}}>
                       {currentTMUser?(
                         <>
-                          <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#ea580c,#f97316)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:15,flexShrink:0}}>{initials(currentTMUser.name)}</div>
+                          <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#818cf8)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:15,flexShrink:0}}>{initials(currentTMUser.name)}</div>
                           <div style={{flex:1}}>
-                            <div style={{fontWeight:700,fontSize:14,color:"var(--txt)"}}>{currentTMUser.name}</div>
-                            <div style={{fontSize:11,color:"var(--txt2)"}}>Technical Manager</div>
+                            <div style={{fontWeight:700,fontSize:14,color:"#1e293b"}}>{currentTMUser.name}</div>
+                            <div style={{fontSize:11,color:"#64748b"}}>Technical Manager</div>
                           </div>
-                          <span style={{padding:"3px 10px",borderRadius:99,background:"#16a34a18",color:"#16a34a",fontSize:10,fontWeight:700,border:"1px solid #16a34a30"}}>Current TM</span>
+                          <span style={{padding:"3px 10px",borderRadius:99,background:"#dcfce7",color:"#16a34a",fontSize:10,fontWeight:700,border:"1px solid #bbf7d0"}}>Current TM</span>
                         </>
                       ):(
                         <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
@@ -301,10 +359,10 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                     <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
-                          <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Team Roster</span>
+                          <span style={{fontSize:11,fontWeight:700,color:"#1e293b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Team Roster</span>
                           <span style={{padding:"2px 8px",borderRadius:99,background:"#6366f118",color:"#6366f1",fontSize:10,fontWeight:700}}>{(project.teamAssignments||[]).filter(a=>a.userId).length} assigned</span>
                         </div>
-                        {isPM&&<Btn v="ghost" style={{fontSize:10,padding:"4px 10px",borderRadius:6}} onClick={()=>{setTeamDraft(project.teamAssignments||[]);setEditTeam(!editTeam);}}>{editTeam?"Cancel":"Edit Team"}</Btn>}
+                        {isPM&&<button onClick={()=>{setTeamDraft(project.teamAssignments||[]);setEditTeam(!editTeam);}} style={{fontSize:10,padding:"4px 12px",borderRadius:6,fontWeight:700,cursor:"pointer",background:editTeam?"#f1f5f9":"transparent",color:editTeam?"#64748b":"#6366f1",border:editTeam?"1px solid #e2e8f0":"1px solid #6366f1"}}>{editTeam?"Cancel":"Edit Team"}</button>}
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                         {TEAM_SLOTS.map(slot=>{
@@ -314,8 +372,8 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                           const eligible=roleMatch.length>0?roleMatch:(users||[]).filter(u=>u.name);
                           const bgColor=slotAvatarColor(slot);
                           return(
-                            <div key={slot.role} style={{padding:12,background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",position:"relative",opacity:!m&&!editTeam?0.45:1,transition:"opacity .15s"}}>
-                              <div style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{slot.role}</div>
+                            <div key={slot.role} style={{padding:12,background:"#ffffff",borderRadius:10,border:m?`1px solid #e2e8f0`:"1px dashed #e2e8f0",borderLeft:m?`3px solid ${bgColor}`:"1px dashed #e2e8f0",position:"relative",opacity:!m&&!editTeam?0.6:1,transition:"opacity .15s",boxShadow:m?"0 1px 2px rgba(0,0,0,0.04)":"none"}}>
+                              <div style={{fontSize:10,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{slot.role}</div>
                               {editTeam?(
                                 <div style={{display:"flex",flexDirection:"column",gap:5}}>
                                   <Sel value={a?.userId?String(a.userId):""} onChange={e=>{const v=e.target.value||null;updateSlot(slot.role,"userId",v||"");assignSlot(slot.role,v);}} style={{padding:"5px 7px",fontSize:11,borderRadius:6,border:"1px solid #e2e8f0",background:"#fff",width:"100%",maxWidth:"100%"}}>
@@ -333,17 +391,17 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                                     <>
                                       <div style={{position:"relative",flexShrink:0}}>
                                         <div style={{width:34,height:34,borderRadius:"50%",background:bgColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:12}}>{initials(m.name)}</div>
-                                        <div style={{position:"absolute",bottom:-1,right:-1,width:10,height:10,borderRadius:"50%",background:"#16a34a",border:"2px solid #f8fafc"}}/>
+                                        <div style={{position:"absolute",bottom:-1,right:-1,width:10,height:10,borderRadius:"50%",background:"#16a34a",border:"2px solid #ffffff"}}/>
                                       </div>
                                       <div>
-                                        <div style={{fontWeight:700,fontSize:13,color:"var(--txt)",lineHeight:1.2}}>{m.name}</div>
+                                        <div style={{fontWeight:700,fontSize:13,color:"#1e293b",lineHeight:1.2}}>{m.name}</div>
                                         <div style={{fontSize:10,color:"#94a3b8"}}>{fmtShort(a.startDate)} - {fmtShort(a.endDate||project.endDate)}</div>
                                       </div>
                                     </>
                                   ):(
                                     <>
-                                      <div style={{width:34,height:34,borderRadius:"50%",background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontSize:14,flexShrink:0}}>-</div>
-                                      <span style={{fontSize:12,color:"#94a3b8",fontStyle:"italic"}}>Unassigned</span>
+                                      <div style={{width:34,height:34,borderRadius:"50%",background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",color:"#cbd5e1",fontSize:14,flexShrink:0}}>+</div>
+                                      <span style={{fontSize:12,color:"#94a3b8"}}>Unassigned</span>
                                     </>
                                   )}
                                 </div>
@@ -378,7 +436,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                       return(
                         <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
-                            <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Approval Gates</span>
+                            <span style={{fontSize:11,fontWeight:700,color:"#1e293b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Approval Gates</span>
                             <span style={{fontSize:10,color:"#64748b"}}>{totalApproved} approved · {totalPending} pending · {totalUpcoming} upcoming</span>
                           </div>
                           {gates.map(g=>{
@@ -423,7 +481,7 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                       const todayPct=Math.min(100,Math.max(0,Math.round((elapsed/totalDays)*100)));
                       return(
                         <div style={{background:"var(--card)",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",padding:"16px 18px",marginBottom:14}}>
-                          <div style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10}}>Stage-wise Timeline</div>
+                          <div style={{fontSize:11,fontWeight:700,color:"#1e293b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10}}>Stage-wise Timeline</div>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                             <span style={{fontSize:11,color:"#64748b",fontWeight:600}}>{fmtShort(project.startDate)}</span>
                             <span style={{fontSize:12,fontWeight:800,color:overdue?"#dc2626":remaining<=14?"#d97706":"#16a34a"}}>{overdue?`OVERDUE by ${Math.abs(remaining)}d`:`${remaining}d remaining`}</span>
