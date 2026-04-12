@@ -27,7 +27,8 @@ const TEAM = [
   { email:"syed.shigarf@elecbits.in",     name:"Syed Shigarf",     resource_role:"jr_fw", role:"developer",  dept:"Firmware",              login_type:"developer" },
   { email:"israfil.khan@elecbits.in",     name:"Israfil Khan",     resource_role:"jr_fw", role:"developer",  dept:"Firmware",              login_type:"developer" },
   { email:"sonu.kumar@elecbits.in",       name:"Sonu Kumar",       resource_role:"jr_fw", role:"developer",  dept:"Firmware",              login_type:"developer" },
-  { email:"nikhil@elecbits.in",           name:"Nikhil",           resource_role:"sc",    role:"superadmin", dept:"Solution Architecture", login_type:"superadmin" },
+  { email:"anwer.suhail@elecbits.in",     name:"Anwer Suhail",     resource_role:"ind_design", role:"developer", dept:"Industrial Design", login_type:"developer" },
+  { email:"nikhil@elecbits.in",           name:"Nikhil",           resource_role:"sol_arch", role:"superadmin", dept:"Solution Architecture", login_type:"superadmin" },
 ];
 
 function initials(name) {

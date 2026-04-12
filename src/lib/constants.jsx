@@ -66,11 +66,11 @@ export const TEAM_SLOTS=[
   {role:"Sr. Firmware",roleKeys:["sr_fw"],label:"Sr. Firmware Engineer"},
   {role:"Jr. Firmware",roleKeys:["jr_fw"],label:"Jr. Firmware Engineer"},
   {role:"Industrial Design",roleKeys:["ind_design"],label:"Industrial Designer"},
-  {role:"Tester",roleKeys:["tester"],label:"Tester / QA"},
-  {role:"Soldering & Testing",roleKeys:["soldering"],label:"Soldering & Testing"},
+  {role:"Tester",roleKeys:["tester","jr_fw"],label:"Tester / QA"},
+  {role:"Soldering & Testing",roleKeys:["soldering","jr_hw"],label:"Soldering & Testing"},
   {role:"Solution Architects",roleKeys:["sol_arch"],label:"Solution Architect"},
-  {role:"DevOps",roleKeys:["devops"],label:"DevOps Engineer"},
-  {role:"Supply Chain",roleKeys:["sc"],label:"Supply Chain"},
+  {role:"DevOps",roleKeys:["devops","sr_pm","jr_pm"],label:"DevOps Engineer"},
+  {role:"Supply Chain",roleKeys:["sc","jr_pm"],label:"Supply Chain"},
 ];
 
 /* ─── THEME SYSTEM ─────────────────────────────────────────────*/
