@@ -48,6 +48,7 @@ BEGIN
     ('syed.shigarf@elecbits.in',    'Syed Shigarf',     'jr_fw', 'developer',  'Firmware',              'developer'),
     ('israfil.khan@elecbits.in',    'Israfil Khan',     'jr_fw', 'developer',  'Firmware',              'developer'),
     ('sonu.kumar@elecbits.in',      'Sonu Kumar',       'jr_fw', 'developer',  'Firmware',              'developer'),
+    ('swati.saxena@elecbits.in',    'Swati Saxena',     'jr_fw', 'developer',  'Firmware',              'developer'),
     ('anwer.suhail@elecbits.in',    'Anwer Suhail',     'ind_design','developer','Industrial Design',    'developer'),
     ('nikhil@elecbits.in',          'Nikhil',           'sol_arch','superadmin','Solution Architecture', 'superadmin');
 
