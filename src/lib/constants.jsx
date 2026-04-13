@@ -142,6 +142,7 @@ export const G=({isDark})=>(
     @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes loadbar{0%{transform:translateX(-100%)}50%{transform:translateX(100%)}100%{transform:translateX(300%)}}
+    @keyframes blink{50%{opacity:0}}
     .fade{animation:fadeUp .25s ease both}
     input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px;cursor:pointer}
     table{border-collapse:collapse;width:100%}
