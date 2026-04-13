@@ -11,6 +11,7 @@ const AddResourceModal=({onClose,addResource,users,DEPT_ROLES})=>{
     jr_hw:["PCB Designing","Schematic Design","Altium Designer","KiCad","Hardware Debugging","Component Selection"],
     sr_fw:["Linux","MCU Programming","STM32","RTOS","Embedded C","Python","Device Drivers","CAN/SPI/I2C"],
     jr_fw:["MCU Programming","STM32","Embedded C","Linux","Arduino","Bare Metal Programming"],
+    jr_fw_2:["MCU Programming","STM32","Embedded C","Linux","Arduino","Bare Metal Programming"],
     ind_design:["Fusion 360","SolidWorks","AutoCAD","3D Printing","DFM","Product Rendering","Mechanical Design"],
     tester:["Test Automation","Manual Testing","JTAG","Oscilloscope","Signal Analyser","Test Report Writing"],
     sr_pm:["Project Planning","Risk Management","Client Communication","Agile/Scrum","JIRA","MS Project"],

@@ -24,7 +24,7 @@ const ResourcesView=({projects,users,setUsers,isAdmin,currentUser})=>{
   const members=users;
   const DEPT_LIST=["Hardware","Firmware","Industrial Design","Testing","Project Management","Supply Chain","DevOps","Solution Architecture","Soldering & Testing","Management"];
   const DEPT_ROLES={
-    Hardware:["sr_hw","jr_hw"],Firmware:["sr_fw","jr_fw"],"Industrial Design":["ind_design"],
+    Hardware:["sr_hw","jr_hw"],Firmware:["sr_fw","jr_fw","jr_fw_2"],"Industrial Design":["ind_design"],
     Testing:["tester"],"Project Management":["sr_pm","jr_pm"],"Supply Chain":["sc"],
     DevOps:["devops"],"Solution Architecture":["sol_arch"],"Soldering & Testing":["soldering"],
     Management:["sr_pm"]

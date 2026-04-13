@@ -208,7 +208,7 @@ const SuperAdminView=({projects,setProjects,currentUser,openProject,users,setUse
   const inProductionCount = activeProjects.filter(p=>p.sanctioned&&!p.rejected).length;
 
   const pmUsers=users.filter(u=>["sr_pm","jr_pm"].includes(u.resourceRole));
-  const tmUsers=users.filter(u=>["sr_hw","jr_hw","sr_fw","jr_fw","ind_design"].includes(u.resourceRole));
+  const tmUsers=users.filter(u=>["sr_hw","jr_hw","sr_fw","jr_fw","jr_fw_2","ind_design"].includes(u.resourceRole));
   const devUsers=users.filter(u=>["tester","soldering","devops","sc","sol_arch"].includes(u.resourceRole));
 
   const startCards = [
