@@ -36,7 +36,7 @@ const PMView=({projects,currentUser,openProject,users,setUsers,sidebarView,setSi
           <div style={{padding:"32px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
               <h1 style={{fontSize:30,fontWeight:800,color:"var(--txt)",margin:0,letterSpacing:"-0.02em"}}>Welcome back, {currentUser.name?.split(" ")[0] || "PM"}</h1>
-              <p style={{fontSize:15,color:"var(--txt2)",marginTop:6,fontWeight:400}}>Here are the projects · {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</p>
+              <p style={{fontSize:15,color:"var(--txt2)",marginTop:6,fontWeight:400}}>Welcome to ODM projects · {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</p>
             </div>
           </div>
 

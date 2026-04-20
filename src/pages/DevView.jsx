@@ -32,7 +32,7 @@ const DevView=({projects,currentUser,openProject,users,setUsers,sidebarView,setS
         <div style={{padding:"24px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div>
             <h1 style={{fontSize:26,fontWeight:800,color:"var(--txt)",margin:0,letterSpacing:"-0.02em"}}>Welcome back, {currentUser.name?.split(" ")[0] || "Developer"}</h1>
-            <p style={{fontSize:14,color:"var(--txt2)",marginTop:4,fontWeight:400}}>Here are the projects</p>
+            <p style={{fontSize:14,color:"var(--txt2)",marginTop:4,fontWeight:400}}>Welcome to ODM projects</p>
           </div>
         </div>
 
