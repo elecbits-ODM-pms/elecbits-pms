@@ -361,8 +361,8 @@ const ProjectPage=({project,currentUser,onBack,onUpdateProject,allProjects,setPr
                 };
                 const slotAvatarColor=(slot)=>{
                   if(["Senior PM","PM"].includes(slot.role))return "#6366f1";
-                  if(["Sr. Hardware","Jr. Hardware"].includes(slot.role))return "#2563eb";
-                  if(["Sr. Firmware","Jr. Firmware"].includes(slot.role))return "#16a34a";
+                  if(["Sr. Hardware","Jr. Hardware","Jr. Hardware 2"].includes(slot.role))return "#2563eb";
+                  if(["Sr. Firmware","Jr. Firmware","Jr. Firmware 2"].includes(slot.role))return "#16a34a";
                   return "#64748b";
                 };
                 return(

@@ -9,6 +9,7 @@ const AddResourceModal=({onClose,addResource,users,DEPT_ROLES})=>{
   const ROLE_SKILLS={
     sr_hw:["PCB Designing","Schematic Design","Altium Designer","Hardware Debugging","EMI/EMC","Signal Integrity","KiCad"],
     jr_hw:["PCB Designing","Schematic Design","Altium Designer","KiCad","Hardware Debugging","Component Selection"],
+    jr_hw_2:["PCB Designing","Schematic Design","Altium Designer","KiCad","Hardware Debugging","Component Selection"],
     sr_fw:["Linux","MCU Programming","STM32","RTOS","Embedded C","Python","Device Drivers","CAN/SPI/I2C"],
     jr_fw:["MCU Programming","STM32","Embedded C","Linux","Arduino","Bare Metal Programming"],
     jr_fw_2:["MCU Programming","STM32","Embedded C","Linux","Arduino","Bare Metal Programming"],

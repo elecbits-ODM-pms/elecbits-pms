@@ -1,6 +1,7 @@
 export const RESOURCE_ROLES=[
   {key:"sr_hw",label:"Sr. Hardware",tier:"senior",maxProjects:4,color:"var(--amber)"},
   {key:"jr_hw",label:"Jr. Hardware",tier:"junior",maxProjects:2,color:"var(--amber)"},
+  {key:"jr_hw_2",label:"Jr. Hardware 2",tier:"junior",maxProjects:2,color:"var(--amber)"},
   {key:"sr_fw",label:"Sr. Firmware",tier:"senior",maxProjects:4,color:"var(--blue)"},
   {key:"jr_fw",label:"Jr. Firmware",tier:"junior",maxProjects:2,color:"var(--blue)"},
   {key:"jr_fw_2",label:"Jr. Firmware 2",tier:"junior",maxProjects:2,color:"var(--blue)"},
@@ -14,7 +15,7 @@ export const RESOURCE_ROLES=[
   {key:"soldering",label:"Soldering & Testing",tier:"junior",maxProjects:2,color:"var(--coral)"},
 ];
 
-export const HIRING_BASE={sr_hw:{req4:1,target17:4,achieved:2},jr_hw:{req4:2,target17:9,achieved:5},sr_fw:{req4:1,target17:4,achieved:3},jr_fw:{req4:3,target17:13,achieved:7},jr_fw_2:{req4:0,target17:0,achieved:0},tester:{req4:1,target17:4,achieved:0},ind_design:{req4:1,target17:4,achieved:1},sr_pm:{req4:1,target17:4,achieved:1},jr_pm:{req4:2,target17:9,achieved:6},sol_arch:{req4:1,target17:4,achieved:0},devops:{req4:1,target17:4,achieved:0},sc:{req4:1,target17:4,achieved:0},soldering:{req4:1,target17:4,achieved:0}};
+export const HIRING_BASE={sr_hw:{req4:1,target17:4,achieved:2},jr_hw:{req4:2,target17:9,achieved:5},sr_fw:{req4:1,target17:4,achieved:3},jr_fw:{req4:3,target17:13,achieved:7},jr_hw_2:{req4:0,target17:0,achieved:0},jr_fw_2:{req4:0,target17:0,achieved:0},tester:{req4:1,target17:4,achieved:0},ind_design:{req4:1,target17:4,achieved:1},sr_pm:{req4:1,target17:4,achieved:1},jr_pm:{req4:2,target17:9,achieved:6},sol_arch:{req4:1,target17:4,achieved:0},devops:{req4:1,target17:4,achieved:0},sc:{req4:1,target17:4,achieved:0},soldering:{req4:1,target17:4,achieved:0}};
 
 export const PROJECT_TAGS=[{key:"engineering",label:"Engineering Project",color:"var(--blue)"},{key:"elecbits_product",label:"Elecbits Product",color:"var(--green)"},{key:"modifier",label:"Modifier",color:"var(--purple)"}];
 export const tagColor=(k)=>PROJECT_TAGS.find(t=>t.key===k)?.color||"var(--txt3)";
@@ -42,8 +43,8 @@ export const mkItem=(text,i)=>({id:`${i}-${Math.random().toString(36).slice(2,6)
 export const CL_OWNERS={
   gantt:["sr_pm","jr_pm"],
   pm_milestone:["sr_pm","jr_pm"],
-  hw_design:["sr_hw","jr_hw"],
-  hw_testing:["sr_hw","jr_hw","tester"],
+  hw_design:["sr_hw","jr_hw","jr_hw_2"],
+  hw_testing:["sr_hw","jr_hw","jr_hw_2","tester"],
   fw_logic:["sr_fw","jr_fw","jr_fw_2"],
   fw_testing:["sr_fw","jr_fw","jr_fw_2","tester"],
   id_design:["ind_design"],
@@ -63,12 +64,14 @@ export const TEAM_SLOTS=[
   {role:"Senior PM",roleKeys:["sr_pm"],label:"Senior PM (Technical Manager)"},
   {role:"PM",roleKeys:["jr_pm","sr_pm"],label:"PM (Project Manager)"},
   {role:"Sr. Hardware",roleKeys:["sr_hw"],label:"Sr. Hardware Engineer"},
-  {role:"Jr. Hardware",roleKeys:["jr_hw"],label:"Jr. Hardware Engineer"},
+  {role:"Jr. Hardware",roleKeys:["jr_hw","jr_hw_2"],label:"Jr. Hardware Engineer"},
+  {role:"Jr. Hardware 2",roleKeys:["jr_hw_2","jr_hw"],label:"Jr. Hardware Engineer 2"},
   {role:"Sr. Firmware",roleKeys:["sr_fw"],label:"Sr. Firmware Engineer"},
   {role:"Jr. Firmware",roleKeys:["jr_fw","jr_fw_2"],label:"Jr. Firmware Engineer"},
+  {role:"Jr. Firmware 2",roleKeys:["jr_fw_2","jr_fw"],label:"Jr. Firmware Engineer 2"},
   {role:"Industrial Design",roleKeys:["ind_design"],label:"Industrial Designer"},
   {role:"Tester",roleKeys:["tester","jr_fw","jr_fw_2"],label:"Tester / QA"},
-  {role:"Soldering & Testing",roleKeys:["soldering","jr_hw"],label:"Soldering & Testing"},
+  {role:"Soldering & Testing",roleKeys:["soldering","jr_hw","jr_hw_2"],label:"Soldering & Testing"},
   {role:"Solution Architects",roleKeys:["sol_arch"],label:"Solution Architect"},
   {role:"DevOps",roleKeys:["devops","sr_pm","jr_pm"],label:"DevOps Engineer"},
   {role:"Supply Chain",roleKeys:["sc","jr_pm"],label:"Supply Chain"},
